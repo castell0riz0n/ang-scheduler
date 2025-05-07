@@ -1,0 +1,85 @@
+<div class="week-view-container" #weekViewContainer>
+  <!-- Week header with day names -->
+  <div class="week-header">
+    <div class="time-label-cell"></div>
+    <div
+      *ngFor="let column of weekColumns()"
+      [class]="getDayColumnClasses(column)"
+      class="day-header-cell">
+      <div class="day-name">{{ column.dayName }}</div>
+      <div class="day-date" [class.text-primary]="column.isToday">
+        {{ column.formattedDate }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Weekly time grid with virtual scrolling -->
+  <div class="week-time-grid">
+    <cdk-virtual-scroll-viewport
+      class="virtual-scroll-viewport"
+      [itemSize]="itemSize"
+      [minBufferPx]="180"
+      [maxBufferPx]="360">
+
+      <div *cdkVirtualFor="let hour of visibleHours()" class="hour-row">
+        <!-- Time label -->
+        <div class="time-label">
+          {{ hour }}:00
+        </div>
+
+        <!-- Day columns -->
+        <div class="day-columns-container">
+          <div
+            *ngFor="let column of weekColumns()"
+            [class]="getDayColumnClasses(column)"
+            class="day-column">
+
+            <!-- Time slots for this hour -->
+            @for (slot of getFilteredSlots(column, hour); track $index) {
+              <div
+                [class]="getTimeSlotClasses(slot)"
+                [id]="getDropListId(slot)"
+                cdkDropList
+                [cdkDropListData]="getDropListData(column!, slot, hour)"
+                [cdkDropListConnectedTo]="getAllDropListIds()"
+                (cdkDropListDropped)="onEventDrop($event, slot)"
+                (click)="onSlotClick(slot, $event)">
+              </div>
+            }
+
+            <!-- Absolute positioned events -->
+            @for (event of column!.events; track event.id) {
+              <div
+                class="calendar-event-container"
+                [style]="getEventStyles(event, column!.date)"
+                *ngIf="isSameDay(parseISO(event.start), column!.date)">
+
+                <div
+                  [class]="getEventClasses(event)"
+                  cdkDrag
+                  [cdkDragData]="event"
+                  (dblclick)="onEventDoubleClick(event, $event)"
+                  [attr.aria-label]="event.title"
+                  [attr.tabindex]="0"
+                  role="button">
+
+                  <!-- Event content -->
+                  <div class="event-content p-1">
+                    <div class="event-title fw-bold text-truncate">{{ event.title }}</div>
+                    <div class="event-time small">{{ formatEventTime(event) }}</div>
+
+                    <!-- Recurring event indicator -->
+                    <span class="recurring-indicator" *ngIf="event.isRecurring">
+                    <i class="bi bi-arrow-repeat"></i>
+                  </span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+    </cdk-virtual-scroll-viewport>
+  </div>
+</div>

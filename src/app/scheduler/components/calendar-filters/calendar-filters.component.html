@@ -1,0 +1,114 @@
+<!-- scheduler/components/calendar-filters.component.html -->
+<div class="calendar-filters">
+  <form [formGroup]="filterForm" class="row g-2 align-items-center">
+    <!-- Keyword search -->
+    <div class="col-12 col-md-3">
+      <div class="input-group">
+        <span class="input-group-text" id="search-addon">
+          <i class="bi bi-search"></i>
+        </span>
+        <input
+          type="text"
+          class="form-control"
+          formControlName="keyword"
+          placeholder="Search events..."
+          aria-label="Search events"
+          aria-describedby="search-addon">
+      </div>
+    </div>
+
+    <!-- Event types multi-select -->
+    <div class="col-12 col-md-3">
+      <select
+        class="form-select"
+        formControlName="types"
+        multiple
+        aria-label="Filter by event type">
+        <option *ngFor="let type of eventTypes" [value]="type.id">
+          {{ type.name }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Date range selector -->
+    <div class="col-12 col-md-2">
+      <select
+        class="form-select"
+        formControlName="dateRange"
+        aria-label="Filter by date range"
+        (change)="onDateRangeChange($event.target!.value!)">
+        <option *ngFor="let range of dateRanges" [value]="range.id">
+          {{ range.name }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Custom date range inputs (conditionally displayed) -->
+    <ng-container *ngIf="showCustomRange()">
+      <div class="col-12 col-md-2">
+        <div class="input-group">
+          <span class="input-group-text">From</span>
+          <input
+            type="date"
+            class="form-control"
+            formControlName="fromDate"
+            aria-label="From date">
+        </div>
+      </div>
+
+      <div class="col-12 col-md-2">
+        <div class="input-group">
+          <span class="input-group-text">To</span>
+          <input
+            type="date"
+            class="form-control"
+            formControlName="toDate"
+            aria-label="To date">
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Reset button -->
+    <div class="col-auto ms-auto">
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        (click)="resetFilters()"
+        aria-label="Reset all filters">
+        <i class="bi bi-x-circle me-1"></i>
+        Clear
+      </button>
+    </div>
+  </form>
+
+  <!-- Active filters summary (shown when filters are active) -->
+  <div class="active-filters mt-2" *ngIf="currentFilter().keyword || currentFilter().types?.length || currentFilter().from">
+    <span class="badge bg-light text-dark me-2">
+      Active filters:
+    </span>
+
+    <ng-container *ngIf="currentFilter().keyword">
+      <span class="badge bg-primary me-1">
+        Keyword: {{ currentFilter().keyword }}
+        <button class="btn-close btn-close-white ms-1" aria-label="Clear keyword filter"
+                (click)="filterForm.patchValue({keyword: ''})"></button>
+      </span>
+    </ng-container>
+
+    <ng-container *ngIf="currentFilter().types?.length">
+      <span class="badge bg-primary me-1" *ngFor="let typeId of currentFilter().types">
+        Type: {{ eventTypes.find(t => t.id === typeId)?.name }}
+        <button class="btn-close btn-close-white ms-1" aria-label="Clear this type filter"
+                (click)="filterForm.patchValue({types: filterForm.value.types.filter(t => t !== typeId)})"></button>
+      </span>
+    </ng-container>
+
+    <ng-container *ngIf="currentFilter().from && currentFilter().to">
+      <span class="badge bg-primary me-1">
+        Date range: {{ formatDate(currentFilter().from) }} to {{ formatDate(currentFilter().to) }}
+        <button class="btn-close btn-close-white ms-1" aria-label="Clear date filter"
+                (click)="onDateRangeChange('all')"></button>
+      </span>
+    </ng-container>
+  </div>
+</div>

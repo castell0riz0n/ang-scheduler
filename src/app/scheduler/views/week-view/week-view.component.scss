@@ -1,0 +1,250 @@
+﻿@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/mixins";
+
+.week-view-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+
+  // Use CSS variables from parent
+  background-color: var(--scheduler-background-color);
+  color: var(--scheduler-text-color);
+}
+
+// Week header
+.week-header {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--scheduler-background-color);
+  border-bottom: 1px solid var(--scheduler-border-color);
+
+  .time-label-cell {
+    width: 60px;
+    min-width: 60px;
+    border-right: 1px solid var(--scheduler-border-color);
+  }
+
+  .day-header-cell {
+    flex: 1;
+    padding: 8px 4px;
+    text-align: center;
+    border-right: 1px solid var(--scheduler-border-color);
+
+    &.is-today {
+      background-color: var(--scheduler-current-day-bg);
+    }
+
+    &.is-weekend {
+      background-color: var(--scheduler-weekend-bg);
+    }
+
+    .day-name {
+      font-weight: bold;
+    }
+
+    .day-date {
+      font-size: 0.9rem;
+    }
+  }
+}
+
+// Week time grid
+.week-time-grid {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+
+  .virtual-scroll-viewport {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .hour-row {
+    display: flex;
+    height: 60px;
+    min-height: 60px;
+    border-bottom: 1px solid var(--scheduler-border-color);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .time-label {
+      width: 60px;
+      min-width: 60px;
+      padding: 4px;
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--scheduler-text-color);
+      border-right: 1px solid var(--scheduler-border-color);
+      background-color: var(--scheduler-background-color);
+      position: sticky;
+      left: 0;
+      z-index: 1;
+    }
+
+    .day-columns-container {
+      display: flex;
+      flex: 1;
+      position: relative;
+    }
+
+    .day-column {
+      flex: 1;
+      position: relative;
+      border-right: 1px solid var(--scheduler-border-color);
+
+      &:last-child {
+        border-right: none;
+      }
+
+      &.is-today {
+        background-color: var(--scheduler-current-day-bg);
+      }
+
+      &.is-weekend {
+        background-color: var(--scheduler-weekend-bg);
+      }
+
+      .time-slot {
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: var(--scheduler-hover-bg);
+        }
+
+        &.is-hour-start {
+          border-top: 1px dashed var(--scheduler-border-color);
+        }
+      }
+    }
+  }
+}
+
+// Calendar events
+.calendar-event-container {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  z-index: 1;
+
+  .calendar-event {
+    height: 100%;
+    width: 100%;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    &.cdk-drag-placeholder {
+      opacity: 0.5;
+    }
+
+    &.cdk-drag-preview {
+      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    // Default color
+    background-color: var(--scheduler-event-default-color);
+
+    // Event type colors
+    &.event-meeting {
+      background-color: var(--scheduler-event-meeting-color);
+    }
+
+    &.event-appointment {
+      background-color: var(--scheduler-event-appointment-color);
+    }
+
+    &.event-deadline {
+      background-color: var(--scheduler-event-deadline-color);
+    }
+
+    &.event-vacation {
+      background-color: var(--scheduler-event-vacation-color);
+    }
+
+    .event-content {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .event-time {
+      opacity: 0.8;
+    }
+
+    .recurring-indicator {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      font-size: 0.8rem;
+    }
+  }
+}
+
+// RTL support
+:host-context([dir="rtl"]) {
+  .time-label {
+    text-align: left;
+    border-right: none;
+    border-left: 1px solid var(--scheduler-border-color);
+    left: auto;
+    right: 0;
+  }
+
+  .day-column {
+    border-right: none;
+    border-left: 1px solid var(--scheduler-border-color);
+
+    &:last-child {
+      border-left: none;
+    }
+  }
+}
+
+// Responsive adjustments
+@include media-breakpoint-down(md) {
+  .week-header {
+    .time-label-cell {
+      width: 40px;
+      min-width: 40px;
+    }
+  }
+
+  .week-time-grid {
+    .hour-row {
+      .time-label {
+        width: 40px;
+        min-width: 40px;
+        font-size: 0.7rem;
+      }
+    }
+  }
+}
+
+// Accessibility focus styles
+:host {
+  .time-slot:focus,
+  .calendar-event:focus {
+    outline: 2px solid var(--scheduler-primary-color);
+    outline-offset: 2px;
+  }
+}

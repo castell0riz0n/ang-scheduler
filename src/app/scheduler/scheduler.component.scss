@@ -1,0 +1,175 @@
+@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/mixins";
+
+// Define CSS custom properties for theming
+:host {
+  --scheduler-primary-color: #{$primary};
+  --scheduler-secondary-color: #{$secondary};
+  --scheduler-background-color: #{$white};
+  --scheduler-text-color: #{$body-color};
+  --scheduler-border-color: #{$border-color};
+  --scheduler-event-default-color: #{$primary};
+  --scheduler-current-day-bg: #{$primary-light};
+  --scheduler-hover-bg: #{$gray-100};
+  --scheduler-weekend-bg: #{$gray-50};
+
+  // Event type colors (can be overridden via input)
+  --scheduler-event-meeting-color: #4285F4;
+  --scheduler-event-appointment-color: #34A853;
+  --scheduler-event-deadline-color: #EA4335;
+  --scheduler-event-vacation-color: #FBBC05;
+
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+// Dark mode support
+:host-context(.dark-mode) {
+  --scheduler-background-color: #{$gray-900};
+  --scheduler-text-color: #{$gray-200};
+  --scheduler-border-color: #{$gray-700};
+  --scheduler-hover-bg: #{$gray-800};
+  --scheduler-weekend-bg: #{$gray-850};
+  --scheduler-current-day-bg: rgba(var(--bs-primary-rgb), 0.2);
+}
+
+.scheduler-container {
+  background-color: var(--scheduler-background-color);
+  color: var(--scheduler-text-color);
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.calendar-header {
+  background-color: var(--scheduler-background-color);
+  z-index: 10;
+}
+
+.calendar-view-container {
+  overflow: hidden;
+}
+
+// Common calendar styles
+.calendar-cell {
+  border: 1px solid var(--scheduler-border-color);
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: var(--scheduler-hover-bg);
+  }
+
+  &.is-weekend {
+    background-color: var(--scheduler-weekend-bg);
+  }
+
+  &.is-current-day {
+    background-color: var(--scheduler-current-day-bg);
+    font-weight: bold;
+  }
+}
+
+// Common event styles
+.calendar-event {
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin: 1px 0;
+  overflow: hidden;
+  padding: 2px 4px;
+  position: relative;
+  text-overflow: ellipsis;
+  transition: box-shadow 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  &.is-dragging {
+    opacity: 0.7;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  // Default color
+  background-color: var(--scheduler-event-default-color);
+
+  // Event type colors
+  &.event-meeting {
+    background-color: var(--scheduler-event-meeting-color);
+  }
+
+  &.event-appointment {
+    background-color: var(--scheduler-event-appointment-color);
+  }
+
+  &.event-deadline {
+    background-color: var(--scheduler-event-deadline-color);
+  }
+
+  &.event-vacation {
+    background-color: var(--scheduler-event-vacation-color);
+  }
+
+  // Event that spans multiple days/hours
+  &.is-continued {
+    border-radius: 0;
+
+    &.is-start {
+      border-top-left-radius: 4px;
+      border-bottom-left-radius: 4px;
+    }
+
+    &.is-end {
+      border-top-right-radius: 4px;
+      border-bottom-right-radius: 4px;
+    }
+  }
+}
+
+// RTL support
+:host-context([dir="rtl"]) {
+  .calendar-event {
+    &.is-continued {
+      &.is-start {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      &.is-end {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+      }
+    }
+  }
+}
+
+// Accessibility focus styles
+:host {
+  .btn:focus,
+  .calendar-cell:focus,
+  .calendar-event:focus {
+    outline: 2px solid var(--scheduler-primary-color);
+    outline-offset: 2px;
+  }
+}
+
+// Responsive adjustments
+@include media-breakpoint-down(md) {
+  .calendar-header {
+    flex-wrap: wrap;
+
+    .view-controls {
+      width: 100%;
+      margin-top: 0.5rem;
+      justify-content: center;
+    }
+  }
+}

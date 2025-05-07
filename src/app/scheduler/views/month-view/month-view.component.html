@@ -1,0 +1,82 @@
+<!-- scheduler/views/month-view.component.html -->
+<div class="month-view-container">
+  <!-- Weekday header -->
+  <div class="month-header-row">
+    <div class="month-header-cell" *ngFor="let day of weekdays()">
+      {{ day }}
+    </div>
+  </div>
+
+  <!-- Calendar grid -->
+  <div class="month-grid" #monthGrid>
+    <div class="month-row" *ngFor="let week of weeks()">
+      <div
+        *ngFor="let day of week.days"
+        [class]="getDayClasses(day)"
+        (click)="onDayClick(day, $event)"
+        [attr.aria-label]="day.date | date:'fullDate'"
+        [attr.tabindex]="0"
+        role="gridcell">
+
+        <!-- Day number -->
+        <div class="day-header d-flex justify-content-between align-items-center p-1">
+          <span class="day-number" [class.text-muted]="!day.isCurrentMonth">
+            {{ day.formattedDate }}
+          </span>
+
+          <!-- Optional: Add day indicators here (holidays, etc) -->
+          <span class="day-indicators" *ngIf="day.isToday">
+            <span class="badge bg-primary">Today</span>
+          </span>
+        </div>
+
+        <!-- Events container -->
+        <div
+          class="day-events"
+          [id]="getDropListId(day)"
+          cdkDropList
+          [cdkDropListData]="day.events"
+          [cdkDropListConnectedTo]="getAllDropListIds()"
+          (cdkDropListDropped)="onEventDrop($event, day.date)">
+
+          <div
+            *ngFor="let event of day.events"
+            [class]="getEventClasses(event)"
+            cdkDrag
+            [cdkDragData]="event"
+            (dblclick)="onEventDoubleClick(event, $event)"
+            [attr.aria-label]="event.title"
+            [attr.tabindex]="0"
+            role="button">
+
+            <!-- Event time -->
+            <small class="event-time d-block" *ngIf="!event.isRecurring">
+              {{ formatEventTime(event) }}
+            </small>
+
+            <!-- Event title -->
+            <div class="event-title text-truncate">
+              {{ event.title }}
+            </div>
+
+            <!-- Recurring event indicator -->
+            <span class="recurring-indicator" *ngIf="event.isRecurring">
+              <i class="bi bi-arrow-repeat"></i>
+            </span>
+          </div>
+
+          <!-- "More events" button if there are overflowing events -->
+          <div
+            *ngIf="day.overflowCount > 0"
+            class="more-events-button"
+            (click)="onMoreClick(day, $event)"
+            [attr.aria-label]="day.overflowCount + ' more events'"
+            [attr.tabindex]="0"
+            role="button">
+            + {{ day.overflowCount }} more
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,73 @@
+<div class="day-view-container" #dayViewContainer>
+  <!-- Day header -->
+  <div class="day-header">
+    <h3 class="day-title" [class.text-primary]="isCurrentDayToday()">
+      {{ formattedDate() }}
+      <span class="badge bg-primary ms-2" *ngIf="isCurrentDayToday()">Today</span>
+    </h3>
+  </div>
+
+  <!-- Day time grid with virtual scrolling -->
+  <div class="day-time-grid">
+    <cdk-virtual-scroll-viewport
+      class="virtual-scroll-viewport"
+      [itemSize]="itemSize"
+      [minBufferPx]="180"
+      [maxBufferPx]="360">
+
+      <div *cdkVirtualFor="let hour of visibleHours()" class="hour-row">
+        <!-- Time label -->
+        <div class="time-label">
+          {{ hour }}:00
+        </div>
+
+        <!-- Time slots for this hour -->
+        <div class="time-slots-container">
+          <div
+            *ngFor="let slot of getTimeSlots(hour)"
+            [class]="getTimeSlotClasses(slot)"
+            [id]="getDropListId(slot)"
+            cdkDropList
+            [cdkDropListData]="getDropListData(slot, hour)"
+            [cdkDropListConnectedTo]="getAllDropListIds()"
+            (cdkDropListDropped)="onEventDrop($event, slot)"
+            (click)="onSlotClick(slot, $event)">
+            <div class="time-slot-label">
+              {{ slot.formattedTime }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Absolute positioned events -->
+        @for (event of getFilteredDayEvents(hour); track event.id) {
+          <div
+            class="calendar-event-container"
+            [style]="getEventStyles(event)">
+
+            <div
+              [class]="getEventClasses(event)"
+              cdkDrag
+              [cdkDragData]="event"
+              (dblclick)="onEventDoubleClick(event, $event)"
+              [attr.aria-label]="event.title"
+              [attr.tabindex]="0"
+              role="button">
+
+              <!-- Event content -->
+              <div class="event-content p-1">
+                <div class="event-title fw-bold text-truncate">{{ event.title }}</div>
+                <div class="event-time small">{{ formatEventTime(event) }}</div>
+
+                <!-- Recurring event indicator -->
+                <span class="recurring-indicator" *ngIf="event.isRecurring">
+                <i class="bi bi-arrow-repeat"></i>
+              </span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+    </cdk-virtual-scroll-viewport>
+  </div>
+</div>
