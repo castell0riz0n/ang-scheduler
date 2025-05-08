@@ -66,7 +66,9 @@
 
 .hour-label {
   padding-right: 8px;
-  height: 60px;
+  height: 80px; /* Match the hour slot height */
+  min-height: 80px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -80,6 +82,10 @@
   flex: 0 0 150px;
   min-width: 150px;
   border-right: 1px solid var(--bs-border-color);
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  min-height: 100%;
 
   &.today-column {
     background-color: var(--bs-primary-bg-subtle);
@@ -91,9 +97,11 @@
 }
 
 .hour-slot {
-  height: 60px;
+  height: 80px; /* Fixed height for consistent rows */
+  min-height: 80px; /* Enforce minimum height */
   border-bottom: 1px solid var(--bs-border-color);
   transition: background-color 0.15s ease;
+  flex-shrink: 0; /* Prevent shrinking */
 
   &:hover {
     background-color: rgba(var(--bs-primary-rgb), 0.05);
@@ -139,4 +147,17 @@
 /* Ensure sticky elements have backgrounds */
 .sticky-top, .sticky-left {
   background-color: var(--bs-body-bg);
+}
+
+.all-day-events-container {
+  padding: 2px;
+  min-height: 30px;
+  max-height: 120px; /* Increase max height for multi-day events */
+  overflow-y: auto;
+  background-color: rgba(var(--bs-tertiary-bg-rgb), 0.3);
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.all-day-event-wrapper {
+  margin-bottom: 2px;
 }

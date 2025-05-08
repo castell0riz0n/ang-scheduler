@@ -1,0 +1,115 @@
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins';
+
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.week-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.week-header {
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.time-gutter-header {
+  flex: 0 0 60px;
+  min-width: 60px;
+  height: 64px;
+  border-bottom: 1px solid var(--bs-border-color);
+  border-right: 1px solid var(--bs-border-color);
+  background-color: var(--bs-tertiary-bg);
+}
+
+.week-header-cell {
+  min-width: 150px;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.week-body-scroll-container {
+  flex-grow: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.time-gutter-body {
+  position: sticky;
+  left: 0;
+  flex: 0 0 60px;
+  min-width: 60px;
+  z-index: 20;
+  background-color: var(--bs-tertiary-bg);
+  border-right: 1px solid var(--bs-border-color);
+}
+
+.hour-label {
+  padding-right: 8px;
+  height: 80px; /* Match height of hour slots */
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.week-grid-days {
+  display: flex;
+  min-width: max-content;
+}
+
+.day-column {
+  min-width: 150px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.all-day-events-container {
+  padding: 2px;
+  min-height: 30px;
+  max-height: 120px;
+  overflow-y: auto;
+  background-color: rgba(var(--bs-tertiary-bg-rgb), 0.3);
+  flex-shrink: 0;
+}
+
+.all-day-event-wrapper {
+  margin-bottom: 2px;
+}
+
+.hour-slot {
+  height: 80px;
+  min-height: 80px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--bs-border-color);
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+  }
+}
+
+.week-event-item-wrapper {
+  z-index: 10;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.02);
+    z-index: 100;
+  }
+}
+
+.drag-placeholder {
+  border: 2px dashed var(--bs-primary);
+  background: rgba(var(--bs-primary-rgb), 0.1);
+  min-height: 30px;
+  border-radius: 4px;
+}

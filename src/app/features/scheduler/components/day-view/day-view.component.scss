@@ -1,6 +1,10 @@
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins';
+
 :host {
   display: block;
-  height: 100%; // Ensure host can fill container for relative % heights if used
+  height: 100%;
 }
 
 .day-view {
@@ -11,23 +15,37 @@
 
 .all-day-events-section {
   flex-shrink: 0;
-  max-height: 150px; // Example max height
+  max-height: 150px;
   overflow-y: auto;
 }
 
 .day-body {
   flex-grow: 1;
-  min-height: 0; // Allows flex item to shrink properly
+  min-height: 0;
 }
 
 .time-gutter-body {
-  flex-basis: 60px; // Adjust width as needed
+  flex-basis: 60px;
   flex-shrink: 0;
-  overflow: hidden; // Gutter viewport handles its scroll
+  overflow: hidden;
+}
+
+.hour-label {
+  padding-right: 8px;
+  height: 80px; /* Increased height */
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .event-pane {
-  overflow: hidden; // Events viewport handles its scroll
+  overflow: hidden;
+}
+
+.hour-slot-container {
+  height: 80px; /* Match hour label height */
+  min-height: 80px;
 }
 
 .hour-slot-droppable {
@@ -40,10 +58,31 @@
     background-color: var(--bs-primary-bg-subtle);
   }
 }
-.drag-placeholder { // General drag placeholder style
+
+.day-event-item-wrapper {
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.02);
+    z-index: 100 !important;
+  }
+}
+
+.drag-placeholder {
   border: 2px dashed var(--bs-primary);
   background: rgba(var(--bs-primary-rgb), 0.1);
-  min-height: 30px; // Match typical event item height
+  min-height: 30px;
   border-radius: 4px;
   box-sizing: border-box;
+}
+
+/* Event styling */
+.all-day-header {
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.my-1 {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
 }

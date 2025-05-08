@@ -9,7 +9,7 @@
   exDate?: string[]; // Array of ISO date strings for exceptions
   data?: any; // For additional custom data
   resourceId?: string; // For resource/group view
-  color?: { primary: string; secondary?: string }; // Optional explicit color override
+  color?: { primary: string; secondary?: string; textColor?:string }; // Optional explicit color override
 }
 
 // Interface for events processed for display
@@ -29,6 +29,7 @@ export interface DisplayCalendarEvent extends CalendarEvent {
   durationInMinutes?: number; // Calculated duration
   gridColumnIndex?: number; // Calculated duration
   originalEvent: CalendarEvent; // Reference to original event
+  gridColumnCount?: number;
 }
 
 export interface DayViewModel {

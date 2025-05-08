@@ -36,7 +36,9 @@ import { startOfDay, addHours } from 'date-fns';
             [dayStartHour]="6"
             [dayEndHour]="20"
             (eventMoved)="onEventMoved($event)"
+            (eventMoveRequested)="onEventMoveRequested($event)"
             (eventEdited)="onEventEdited($event)"
+            (eventDeleted)="onEventDeleted($event)"
             (slotClicked)="onSlotClicked($event)"
           ></app-scheduler>
         </div>
@@ -415,5 +417,36 @@ export class SchedulerDemoComponent implements OnInit {
       case 'client': return 'bg-danger';
       default: return 'bg-primary';
     }
+  }
+
+  onEventDeleted(event: CalendarEvent): void {
+    if (confirm(`Are you sure you want to delete "${event.title}"?`)) {
+      this.demoEventService.deleteEvent(event.id);
+    }
+  }
+
+  onEventMoveRequested(moveData: { event: CalendarEvent, newStart: string, newEnd: string }): void {
+    // Set the selected event
+    this.selectedEvent = moveData.event;
+
+    // Create a form with the updated date/time
+    this.editMode = true;
+
+    const newStart = new Date(moveData.newStart);
+    const newEnd = new Date(moveData.newEnd);
+
+    this.eventForm = this.fb.group({
+      title: [moveData.event.title, Validators.required],
+      type: [moveData.event.type, Validators.required],
+      allDay: [moveData.event.allDay || false],
+      startDate: [this.formatDateForInput(newStart), Validators.required],
+      startTime: [this.formatTimeForInput(newStart), Validators.required],
+      endDate: [this.formatDateForInput(newEnd), Validators.required],
+      endTime: [this.formatTimeForInput(newEnd), Validators.required],
+      description: [moveData.event.data?.description || '']
+    });
+
+    // Show the edit modal
+    // The modal will be displayed since this.selectedEvent is now set
   }
 }

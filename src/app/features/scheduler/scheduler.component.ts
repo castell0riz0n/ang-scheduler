@@ -4,7 +4,10 @@ import { DateUtilService } from './services/date.service';
 import {
   startOfDay, endOfDay, isWithinInterval,
   parseISO, isBefore,
-  getHours, addHours, differenceInMinutes, startOfWeek, addMinutes
+  getHours, addHours, differenceInMinutes, startOfWeek, addMinutes,
+  isAfter,
+  max,
+  min, getMinutes
 } from 'date-fns';
 import {CommonModule} from '@angular/common';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
@@ -63,6 +66,8 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
   viewChanged = output<{ view: SchedulerView, centerDateISO: string, viewStartISO: string, viewEndISO: string }>();
   slotClicked = output<{ date: string, timeZone: string }>(); // ISO string of slot start, including time for day/week view
   eventEdited = output<CalendarEvent>();
+  eventDeleted = output<CalendarEvent>();
+  eventMoveRequested = output<{ event: CalendarEvent, newStart: string, newEnd: string }>();
 
   // --- Internal State Signals ---
   destroyRef = inject(DestroyRef);
@@ -248,32 +253,78 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
   // Common function to map CalendarEvent to DisplayCalendarEvent
   private mapEventsToDisplayFormat(calEvents: CalendarEvent[], viewStart: Date, viewEnd: Date): DisplayCalendarEvent[] {
     const tz = this.timeZone();
-    return calEvents.map(event => {
+    const processedEvents: DisplayCalendarEvent[] = [];
+
+    calEvents.forEach(event => {
       const displayStart = this.dateUtil.parseWithTz(event.start, tz);
       const displayEnd = this.dateUtil.parseWithTz(event.end, tz);
 
-      // Clamp event display to view boundaries for multi-day spans visuals
-      const effectiveStart = isBefore(displayStart, viewStart) ? viewStart : displayStart;
-      const effectiveEnd = isBefore(viewEnd, displayEnd) ? viewEnd : displayEnd;
+      // Determine if the event spans multiple days
+      const isMultiDay = !this.dateUtil.isSameDay(displayStart, displayEnd);
 
-      return {
-        ...event,
-        originalEvent: event, // keep a reference
-        displayStart: effectiveStart,
-        displayEnd: effectiveEnd,
-        continuesBefore: isBefore(displayStart, viewStart),
-        continuesAfter: isBefore(viewEnd, displayEnd),
-        isMultiDaySpan: differenceInMinutes(displayEnd, displayStart) > 24*60, // Basic check
-        durationInMinutes: differenceInMinutes(displayEnd, displayStart),
-        allDay: event.allDay || (differenceInMinutes(displayEnd, displayStart) >= (24*60)-1), // Consider full day as allDay
-      };
-    }).filter(event => { // Final filter to ensure event is within the broad view range
-      const eventStartInView = this.dateUtil.parseWithTz(event.start, tz);
-      const eventEndInView = this.dateUtil.parseWithTz(event.end, tz);
-      return isBefore(eventStartInView, viewEnd) && isBefore(viewStart, eventEndInView);
+      if (isMultiDay && !event.allDay) {
+        // For multi-day timed events, create separate segments for each day
+        let currentDay = startOfDay(displayStart);
+        const lastDay = startOfDay(displayEnd);
+
+        while (!isAfter(currentDay, lastDay)) {
+          // Check if this day segment is within our view range
+          if (this.dateUtil.isWithinInterval(currentDay, { start: viewStart, end: viewEnd })) {
+            const segmentStart = max([displayStart, currentDay]);
+            const segmentEnd = min([
+              displayEnd,
+              endOfDay(currentDay)
+            ]);
+
+            // Only create a segment if it has duration
+            if (isBefore(segmentStart, segmentEnd)) {
+              const isFirstDay = this.dateUtil.isSameDay(segmentStart, displayStart);
+              const isLastDay = this.dateUtil.isSameDay(segmentEnd, displayEnd);
+
+              processedEvents.push({
+                ...event,
+                originalEvent: event,
+                id: `${event.id}_${this.dateUtil.format(currentDay, 'yyyyMMdd')}`,
+                displayStart: segmentStart,
+                displayEnd: segmentEnd,
+                continuesBefore: !isFirstDay,
+                continuesAfter: !isLastDay,
+                isMultiDaySpan: true,
+                durationInMinutes: this.dateUtil.differenceInMinutes(segmentEnd, segmentStart)
+              });
+            }
+          }
+
+          // Move to next day
+          currentDay = this.dateUtil.addDays(currentDay, 1);
+        }
+      } else {
+        // For single-day or all-day events, process normally
+        const effectiveStart = isBefore(displayStart, viewStart) ? viewStart : displayStart;
+        const effectiveEnd = isBefore(viewEnd, displayEnd) ? viewEnd : displayEnd;
+
+        processedEvents.push({
+          ...event,
+          originalEvent: event,
+          displayStart: effectiveStart,
+          displayEnd: effectiveEnd,
+          continuesBefore: isBefore(displayStart, viewStart),
+          continuesAfter: isBefore(viewEnd, displayEnd),
+          isMultiDaySpan: isMultiDay,
+          durationInMinutes: this.dateUtil.differenceInMinutes(effectiveEnd, effectiveStart),
+          allDay: event.allDay || isMultiDay // Consider multi-day events as "all-day" for layout purposes
+        });
+      }
+    });
+
+    // Sort events to ensure predictable layout
+    return processedEvents.sort((a, b) => {
+      // All-day events come first
+      if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
+      // Then sort by start time
+      return a.displayStart.getTime() - b.displayStart.getTime();
     });
   }
-
   // TODO: Sophisticated layout for overlapping events (placeholder)
   private layoutEventsForDayCell(events: DisplayCalendarEvent[], dayDate: Date): DisplayCalendarEvent[] {
     // For month view, just return them sorted. Stacking UI handled in template with maxEventsPerCell
@@ -291,72 +342,76 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
     if (!dayEvents.length) return [];
 
     const laidOutEvents: DisplayCalendarEvent[] = [];
-    // `columns` will hold arrays of events, representing visual columns in the layout
-    const columns: { events: DisplayCalendarEvent[], lastEventEndTime: Date }[] = [];
 
-    // Helper: does event B start before event A ends? (chronological overlap)
-    const doesOverlap = (eventA_utcEnd: Date, eventB_utcStart: Date) => {
-      return isBefore(eventB_utcStart, eventA_utcEnd);
-    };
+    // Group events by start time to identify overlaps
+    const eventsByStartTime = new Map<string, DisplayCalendarEvent[]>();
 
-    for (const event of dayEvents) { // event.displayStart and event.displayEnd are UTC
-      let placed = false;
-      for (let i = 0; i < columns.length; i++) {
-        if (!doesOverlap(columns[i].lastEventEndTime, event.displayStart)) {
-          columns[i].events.push(event);
-          columns[i].lastEventEndTime = event.displayEnd; // Update last end time for this column
-          event.gridColumnIndex = i;
-          placed = true;
-          break;
-        }
+    // Sort events by start time
+    dayEvents.sort((a, b) => a.displayStart.getTime() - b.displayStart.getTime());
+
+    // Group events that start at the same time (rounded to 5-minute intervals for flexibility)
+    dayEvents.forEach(event => {
+      const roundedStart = Math.floor(
+        (getHours(event.displayStart) * 60 + getMinutes(event.displayStart)) / 5
+      ) * 5;
+
+      const key = `${roundedStart}`;
+      if (!eventsByStartTime.has(key)) {
+        eventsByStartTime.set(key, []);
       }
+      eventsByStartTime.get(key)!.push(event);
+    });
 
-      if (!placed) {
-        columns.push({ events: [event], lastEventEndTime: event.displayEnd });
-        event.gridColumnIndex = columns.length - 1;
-      }
+    // Calculate positions for each group of events
+    eventsByStartTime.forEach((events, startTimeKey) => {
+      const count = events.length;
 
-      // Calculate visual top and height relative to the day's timeline
-      // dayDateUtc is start of the day. event.displayStart is event's UTC start.
-      const dayStartBoundaryUtc = this.dateUtil.setHours(this.dateUtil.setMinutes(new Date(dayDateUtc),0), dayViewStartHour);
-      const dayEndBoundaryUtc = this.dateUtil.setHours(this.dateUtil.setMinutes(new Date(dayDateUtc),59), dayViewEndHour -1); // e.g. end is 18 means up to 17:59
+      events.forEach((event, index) => {
+        // Get the day start boundary in UTC for position calculation
+        const dayStartBoundaryUtc = this.dateUtil.setHours(
+          this.dateUtil.setMinutes(new Date(dayDateUtc), 0),
+          dayViewStartHour
+        );
 
+        // Calculate top position (Y coordinate)
+        const startMinutesFromViewStart = Math.max(
+          0,
+          differenceInMinutes(event.displayStart, dayStartBoundaryUtc)
+        );
 
-      // Event's start relative to the visual start of the day (in minutes)
-      let startMinutesFromViewStart = 0;
-      if (isBefore(event.displayStart, dayStartBoundaryUtc)) {
-        startMinutesFromViewStart = 0; // Starts before visual window, clamp to top
-      } else {
-        startMinutesFromViewStart = differenceInMinutes(event.displayStart, dayStartBoundaryUtc);
-      }
+        // Calculate duration for height
+        const dayEndBoundaryUtc = this.dateUtil.setHours(
+          this.dateUtil.setMinutes(new Date(dayDateUtc), 59),
+          dayViewEndHour - 1
+        );
 
-      // Event's end relative to the visual start of the day (in minutes)
-      let endMinutesFromViewStart = 0;
-      if(isBefore(dayEndBoundaryUtc, event.displayEnd)){
-        endMinutesFromViewStart = differenceInMinutes(dayEndBoundaryUtc, dayStartBoundaryUtc);
-      } else {
-        endMinutesFromViewStart = differenceInMinutes(event.displayEnd, dayStartBoundaryUtc);
-      }
+        const visibleEnd = isBefore(dayEndBoundaryUtc, event.displayEnd)
+          ? dayEndBoundaryUtc
+          : event.displayEnd;
 
-      // Duration for display, clipped to view boundaries
-      const durationMinutesVisual = Math.max(0, endMinutesFromViewStart - startMinutesFromViewStart);
+        const durationMinutesVisual = Math.max(
+          0,
+          differenceInMinutes(visibleEnd, event.displayStart)
+        );
 
-      laidOutEvents.push({
-        ...event,
-        // These are visual offsets/durations for rendering
-        gridRowStartMinutes: Math.max(0, startMinutesFromViewStart), // Y position in minutes from `dayViewStartHour`
-        durationInMinutes: Math.max(15, durationMinutesVisual), // Min 15 min height, visual duration
+        // Calculate width and left position for side-by-side display
+        const width = count > 1 ? `${Math.max(20, 96 / count)}%` : '96%';
+        const left = count > 1 ? `${(index * (96 / count)) + 2}%` : '2%';
+
+        laidOutEvents.push({
+          ...event,
+          gridRowStartMinutes: Math.max(0, startMinutesFromViewStart),
+          durationInMinutes: Math.max(15, durationMinutesVisual),
+          width: width,
+          left: left,
+          zIndex: 10 + index,
+          gridColumnIndex: index,
+          gridColumnCount: count
+        });
       });
-    }
+    });
 
-    // Post-process to set width and left based on max columns used
-    const totalColumns = columns.length;
-    return laidOutEvents.map(e => ({
-      ...e,
-      width: totalColumns > 0 ? `${Math.max(20, 100 / totalColumns - 2)}%` : '98%', // Max 100%, add small gap
-      left: totalColumns > 0 ? `${(e.gridColumnIndex || 0) * (100 / totalColumns)}%` : '1%',
-      zIndex: 10 + (e.gridColumnIndex || 0),
-    }));
+    return laidOutEvents;
   }
 
   // For month/week headers
@@ -520,6 +575,14 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
     this.eventEdited.emit(event);
   }
 
+  handleEventDeleted(event: CalendarEvent) {
+    this.eventDeleted.emit(event);
+  }
+
+  handleEventMoveEdit(moveData: { event: CalendarEvent, newStart: string, newEnd: string }) {
+    this.eventMoveRequested.emit(moveData);
+  }
+
   // --- Scrolling Logic ---
   private scrollToCenter() {
     // This is a simplified scroll. For week/day views, it might involve scrolling
@@ -571,6 +634,5 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
   getAriaLiveMessage(): string {
     return `Calendar view changed to ${this.currentView()}. Displaying dates around ${this.viewTitle()}.`;
   }
-
 
 }

@@ -43,45 +43,45 @@
             [locale]="locale()"
             [timeZone]="timeZone()"
             (eventDropped)="handleEventDropped($event)"
+            (eventMoveEdit)="handleEventMoveEdit($event)"
             (slotClicked)="handleSlotClicked($event)"
             (eventClicked)="handleEventClicked($event)"
+            (eventDeleted)="handleEventDeleted($event)"
           ></app-month-view>
         </div>
       }
       @case ('week') {
         <!-- Week View: Requires a more complex layout for hours and virtual scrolling -->
         <div #weekViewContainer class="week-view-container">
-          <app-week-view
-            [days]="weekViewDays()"
-            [weekDayNames]="weekDayNames()"
-            [currentViewDate]="_parsedCenterDate()"
-            [hoursRange]="{ start: dayStartHour(), end: dayEndHour() }"
-            [locale]="locale()"
-            [timeZone]="timeZone()"
-            (eventDropped)="handleEventDropped($event)"
-            (slotClicked)="handleSlotClicked($event)"
-            (eventClicked)="handleEventClicked($event)"
-          ></app-week-view>
-          <!-- Placeholder until WeekViewComponent is fully implemented -->
-          <!-- <p class="p-3">Week View for {{ viewTitle() }}. Implement using CDK Virtual Scroll for hours.</p>
-               <pre>{{ weekViewDays() | json }}</pre> -->
+        <app-week-view
+          [days]="weekViewDays()"
+          [weekDayNames]="weekDayNames()"
+          [currentViewDate]="_parsedCenterDate()"
+          [hoursRange]="{ start: dayStartHour(), end: dayEndHour() }"
+          [locale]="locale()"
+          [timeZone]="timeZone()"
+          (eventDropped)="handleEventDropped($event)"
+          (eventMoveEdit)="handleEventMoveEdit($event)"
+          (slotClicked)="handleSlotClicked($event)"
+          (eventClicked)="handleEventClicked($event)"
+          (eventDeleted)="handleEventDeleted($event)"
+        ></app-week-view>
         </div>
       }
       @case ('day') {
         <!-- Day View: Requires layout for hours and virtual scrolling -->
         <div #dayViewContainer class="day-view-container">
-          <app-day-view
-            [hours]="dayViewHours()"
-            [currentViewDate]="_parsedCenterDate()"
-            [locale]="locale()"
-            [timeZone]="timeZone()"
-            (eventDropped)="handleEventDropped($event)"
-            (slotClicked)="handleSlotClicked($event)"
-            (eventClicked)="handleEventClicked($event)"
-          ></app-day-view>
-          <!-- Placeholder until DayViewComponent is fully implemented -->
-          <!-- <p class="p-3">Day View for {{ viewTitle() }}. Implement using CDK Virtual Scroll for hours.</p>
-               <pre>{{ dayViewHours() | json }}</pre> -->
+        <app-day-view
+          [hours]="dayViewHours()"
+          [currentViewDate]="_parsedCenterDate()"
+          [locale]="locale()"
+          [timeZone]="timeZone()"
+          (eventDropped)="handleEventDropped($event)"
+          (eventMoveEdit)="handleEventMoveEdit($event)"
+          (slotClicked)="handleSlotClicked($event)"
+          (eventClicked)="handleEventClicked($event)"
+          (eventDeleted)="handleEventDeleted($event)"
+        ></app-day-view>
         </div>
       }
       @default {

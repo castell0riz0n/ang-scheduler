@@ -1,7 +1,9 @@
 <div class="week-view" role="grid" [attr.aria-label]="'Week view showing events'">
   <!-- Week Header Row -->
   <div class="week-header d-flex sticky-top bg-body shadow-sm" role="row">
-    <div class="time-gutter-header bg-body-tertiary" role="columnheader" aria-label="Time"><span class="visually-hidden">Time</span></div>
+    <div class="time-gutter-header bg-body-tertiary" role="columnheader" aria-label="Time">
+      <span class="visually-hidden">Time</span>
+    </div>
     @for (day of days(); track day.date.toISOString(); let dayIndex = $index) {
       <div
         class="week-header-cell flex-fill text-center p-2 border-start user-select-none"
@@ -42,6 +44,33 @@
             role="gridcell"
             [attr.aria-labelledby]="'weekDayHeader-' + dayIndex"
           >
+            <!-- All-day events section -->
+            <div class="all-day-events-container border-bottom">
+              @for(event of getAllDayEvents(day); track event.id) {
+                <div
+                  cdkDrag
+                  [cdkDragData]="event"
+                  (cdkDragEnded)="onDragEnded($event)"
+                  class="all-day-event-wrapper"
+                  role="button"
+                  tabindex="0"
+                  [attr.aria-label]="event.title + ' (All day)'"
+                  (dblclick)="handleEventItemClicked(event, $event)"
+                  (click)="handleEventItemClicked(event, $event)"
+                >
+                  <app-event-item
+                    [event]="event"
+                    viewType="week"
+                    [currentLocale]="locale()"
+                    [currentTimeZone]="timeZone()"
+                    (eventEdited)="handleEventItemClicked(event, $event)"
+                    (eventDeleted)="handleEventItemDeleted(event, $event)"
+                  ></app-event-item>
+                  <div *cdkDragPlaceholder class="drag-placeholder bg-info-subtle"></div>
+                </div>
+              }
+            </div>
+
             <!-- Hour Slots for dropping - these create the droppable grid and visual lines -->
             @for(hourSegment of hourSegments(); track hourSegment.date.toISOString(); let hourIndex = $index) {
               <div
@@ -61,9 +90,8 @@
               </div>
             }
 
-            <!-- Events for this day, absolutely positioned OVER the hour slots -->
-            <!-- The parent container 'day-column' must have relative positioning -->
-            @for(event of day.events; track event.id) {
+            <!-- Regular events, absolutely positioned OVER the hour slots -->
+            @for(event of getRegularEvents(day); track event.id) {
               <div
                 cdkDrag
                 [cdkDragData]="event"
@@ -77,15 +105,16 @@
                 (click)="handleEventItemClicked(event, $event)"
                 (keydown.enter)="handleEventItemClicked(event, $event)"
                 (keydown.space)="$event.preventDefault(); handleEventItemClicked(event, $event)"
-                >
-              <app-event-item
-                [event]="event"
-                viewType="week"
-                [currentLocale]="locale()"
-                [currentTimeZone]="timeZone()"
-                (eventEdited)="handleEventItemClicked(event, $event)"
-              ></app-event-item>
-              <div *cdkDragPlaceholder class="drag-placeholder bg-info-subtle"></div>
+              >
+                <app-event-item
+                  [event]="event"
+                  viewType="week"
+                  [currentLocale]="locale()"
+                  [currentTimeZone]="timeZone()"
+                  (eventEdited)="handleEventItemClicked(event, $event)"
+                  (eventDeleted)="handleEventItemDeleted(event, $event)"
+                ></app-event-item>
+                <div *cdkDragPlaceholder class="drag-placeholder bg-info-subtle"></div>
               </div>
             }
           </div>

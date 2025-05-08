@@ -54,15 +54,18 @@ export class MonthViewComponent implements AfterViewInit {
   timeZone = input<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
   hoursRange = input<{ start: number, end: number }>({ start: 0, end: 24 });
 
+  eventDeleted = output<CalendarEvent>();
+
   eventDropped = output<{ event: CalendarEvent, newStart: string, newEnd: string }>();
   slotClicked = output<string>();
   eventClicked = output<CalendarEvent>();
+  eventMoveEdit = output<{ event: CalendarEvent, newStart: string, newEnd: string }>();
 
   public dateUtil = inject(DateUtilService);
   private cdr = inject(ChangeDetectorRef);
 
   public maxEventsPerCell = 3;
-  public hourSegmentHeight = signal(60);
+  public hourSegmentHeight = signal(80);
 
   // ViewChild references - updated to match new template
   @ViewChild('headerContent') headerContent?: ElementRef<HTMLElement>;
@@ -179,7 +182,8 @@ export class MonthViewComponent implements AfterViewInit {
 
     let newEndUTC = addMinutes(newStartUTC, duration > 0 ? duration : 60);
 
-    this.eventDropped.emit({
+    // Instead of directly updating the event, emit a special event to open the edit form
+    this.eventMoveEdit.emit({
       event: { ...movedEvent.originalEvent, allDay: newAllDay },
       newStart: this.dateUtil.toIsoString(newStartUTC),
       newEnd: this.dateUtil.toIsoString(newEndUTC),
@@ -192,7 +196,8 @@ export class MonthViewComponent implements AfterViewInit {
         top: '5px',
         left: '3%',
         width: '94%',
-        height: '24px'
+        height: '24px',
+        zIndex: 5
       };
     }
 
@@ -200,8 +205,11 @@ export class MonthViewComponent implements AfterViewInit {
     const eventStart = getHours(event.displayStart) * 60 + getMinutes(event.displayStart);
     const startMinutesFromDayStart = Math.max(0, eventStart - dayStart);
 
-    const top = (startMinutesFromDayStart / 60) * this.hourSegmentHeight();
+    // Calculate the event duration in minutes
     const duration = differenceInMinutes(event.displayEnd, event.displayStart);
+
+    // Ensure the event height respects the full duration
+    const top = (startMinutesFromDayStart / 60) * this.hourSegmentHeight();
     const height = Math.max(25, (duration / 60) * this.hourSegmentHeight());
 
     return {
@@ -209,7 +217,10 @@ export class MonthViewComponent implements AfterViewInit {
       left: '3%',
       width: '94%',
       height: `${height}px`,
-      zIndex: 10
+      zIndex: event.continuesBefore || event.continuesAfter ? 15 : 10, // Higher z-index for continuing events
+      borderLeft: '4px solid ' + (event.color?.primary || 'var(--event-default-color)'),
+      backgroundColor: event.color?.secondary || 'var(--event-default-bg)',
+      color: event.color?.textColor || 'var(--event-default-text)'
     };
   }
 
@@ -218,7 +229,7 @@ export class MonthViewComponent implements AfterViewInit {
   }
 
   onEventClick(event: DisplayCalendarEvent, domEvent: MouseEvent) {
-    domEvent.stopPropagation();
+    //domEvent?.stopPropagation();
     this.eventClicked.emit(event.originalEvent);
   }
 
@@ -236,5 +247,22 @@ export class MonthViewComponent implements AfterViewInit {
 
   getOverflowCount(day: DayViewModel): number {
     return Math.max(0, day.events.length - this.maxEventsPerCell);
+  }
+
+  getAllDayEvents(day: DayViewModel): DisplayCalendarEvent[] {
+    return day.events.filter(event => event.allDay || event.isMultiDaySpan);
+  }
+
+// Get regular timed events for a specific day
+  getRegularEvents(day: DayViewModel): DisplayCalendarEvent[] {
+    return day.events.filter(event => !event.allDay && !event.isMultiDaySpan);
+  }
+
+// Handle event deletion
+  onEventDelete(event: DisplayCalendarEvent, domEvent: MouseEvent) {
+    //domEvent?.stopPropagation();
+    // Emit the delete event to parent component
+    // You'll need to add a new output for this
+    this.eventDeleted.emit(event.originalEvent);
   }
 }

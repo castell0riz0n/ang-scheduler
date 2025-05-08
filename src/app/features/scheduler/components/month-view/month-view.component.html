@@ -57,6 +57,36 @@
             role="gridcell"
             [attr.aria-labelledby]="'monthDayHeader-' + day.date.toISOString()"
           >
+
+            <!-- All-day and multi-day events area -->
+            <div class="all-day-events-container border-bottom">
+              @for(event of getAllDayEvents(day); track event.id) {
+                <div
+                  cdkDrag
+                  [cdkDragData]="event"
+                  (cdkDragEnded)="onDragEnded($event)"
+                  class="all-day-event-wrapper"
+                  role="button"
+                  tabindex="0"
+                  [attr.aria-label]="event.title + ' (All day)'"
+                  (dblclick)="onEventClick(event, $event)"
+                  (click)="onEventClick(event, $event)"
+                  (keydown.enter)="onEventClick(event, $event)"
+                  (keydown.space)="$event.preventDefault(); onEventClick(event, $event)">
+
+                  <app-event-item
+                    [event]="event"
+                    viewType="month"
+                    [currentLocale]="locale()"
+                    [currentTimeZone]="timeZone()"
+                    (eventEdited)="onEventClick(event, $event)"
+                    (eventDeleted)="onEventDelete(event, $event)"
+                  ></app-event-item>
+                  <div *cdkDragPlaceholder class="drag-placeholder bg-info-subtle"></div>
+                </div>
+              }
+            </div>
+
             <!-- Hour Slots -->
             <div class="hour-slots-container position-relative">
               @for(hour of hourSegments(); track hour.date.toISOString(); let hourIndex = $index) {
@@ -93,14 +123,15 @@
                   (dblclick)="onEventClick(event, $event)"
                   (click)="onEventClick(event, $event)"
                   (keydown.enter)="onEventClick(event, $event)"
-                  (keydown.space)="$event.preventDefault(); onEventClick(event, $event)"
-                >
+                  (keydown.space)="$event.preventDefault(); onEventClick(event, $event)">
+
                   <app-event-item
                     [event]="event"
                     viewType="month"
                     [currentLocale]="locale()"
                     [currentTimeZone]="timeZone()"
                     (eventEdited)="onEventClick(event, $event)"
+                    (eventDeleted)="onEventDelete(event, $event)"
                   ></app-event-item>
                   <div *cdkDragPlaceholder class="drag-placeholder bg-info-subtle"></div>
                 </div>
