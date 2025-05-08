@@ -1,6 +1,6 @@
 ﻿import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SchedulerView } from '../services/scheduler-state.service';
+import { SchedulerView } from '../../services/scheduler-state.service';
 
 @Component({
   selector: 'app-scheduler-header',

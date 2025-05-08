@@ -1,18 +1,20 @@
-﻿import { Injectable, signal, computed, inject } from '@angular/core';
+﻿
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { CalendarEvent, DisplayCalendarEvent, DayViewModel, HourViewModel } from '../models/calendar-event.model';
 import { DateUtilService } from './date.service';
 import { SchedulerLayoutService } from './scheduler-layout.service';
 import {
   parseISO, startOfDay, endOfDay, isWithinInterval,
-  isBefore, startOfWeek, endOfWeek, eachDayOfInterval,
-  startOfMonth, endOfMonth, getHours, getMinutes
+  isBefore, addDays, addWeeks, addMonths,
+  startOfWeek, endOfWeek, startOfMonth, endOfMonth,
+  eachDayOfInterval
 } from 'date-fns';
 
 export type SchedulerView = 'month' | 'week' | 'day';
 
 export interface SchedulerFilter {
-  from?: string;
-  to?: string;
+  from?: string; // ISO date string
+  to?: string; // ISO date string
   types?: string[];
   keyword?: string;
 }
@@ -45,6 +47,7 @@ export class SchedulerStateService {
     }
   });
 
+  // Get the date range for the current view
   readonly viewDateRange = computed(() => {
     const date = this.parsedCenterDate();
     const loc = this._locale();
@@ -104,6 +107,7 @@ export class SchedulerStateService {
     return filteredEvents;
   });
 
+  // Recurring events expanded for the current view range
   readonly processedEvents = computed(() => {
     const { start, end } = this.viewDateRange();
     return this.dateUtil.expandRecurrences(
@@ -114,27 +118,14 @@ export class SchedulerStateService {
     );
   });
 
-  readonly displayEvents = computed(() => {
-    const processed = this.processedEvents();
-    const { start, end } = this.viewDateRange();
-    const tz = this._timeZone();
-
-    // Process events for display
-    return this.layoutService.processEventsForDisplay(
-      (processed as DisplayCalendarEvent[]),
-      start,
-      end,
-      tz
-    );
-  });
-
+  // Data for month view
   readonly monthViewDays = computed(() => {
     if (this._currentView() !== 'month') return [];
 
     const { days } = this.viewDateRange();
     const today = startOfDay(new Date());
     const currentMonth = this.parsedCenterDate().getMonth();
-    const events = this.displayEvents();
+    const events = this.processedEvents();
 
     return days.map(date => {
       const dayStart = startOfDay(date);
@@ -142,11 +133,24 @@ export class SchedulerStateService {
 
       // Filter events for this day
       const dayEvents = events.filter(event =>
-        isWithinInterval(event.displayStart, { start: dayStart, end: dayEnd }) ||
-        isWithinInterval(event.displayEnd, { start: dayStart, end: dayEnd }) ||
-        (isBefore(event.displayStart, dayStart) &&
-          isBefore(dayEnd, event.displayEnd))
-      );
+        isWithinInterval(this.dateUtil.parseISOString(event.start), { start: dayStart, end: dayEnd }) ||
+        isWithinInterval(this.dateUtil.parseISOString(event.end), { start: dayStart, end: dayEnd }) ||
+        (isBefore(this.dateUtil.parseISOString(event.start), dayStart) &&
+          isBefore(dayEnd, this.dateUtil.parseISOString(event.end)))
+      ).map(event => {
+        const displayStart = this.dateUtil.parseISOString(event.start);
+        const displayEnd = this.dateUtil.parseISOString(event.end);
+
+        return {
+          ...event,
+          displayStart,
+          displayEnd,
+          isMultiDaySpan: !this.dateUtil.isSameDay(displayStart, displayEnd),
+          continuesBefore: isBefore(displayStart, dayStart),
+          continuesAfter: isBefore(dayEnd, displayEnd),
+          originalEvent: event
+        };
+      });
 
       return {
         date,
@@ -158,12 +162,13 @@ export class SchedulerStateService {
     });
   });
 
+  // Data for week view
   readonly weekViewDays = computed(() => {
     if (this._currentView() !== 'week') return [];
 
     const { days } = this.viewDateRange();
     const today = startOfDay(new Date());
-    const events = this.displayEvents();
+    const events = this.processedEvents();
 
     return days.map(date => {
       const dayStart = startOfDay(date);
@@ -171,36 +176,52 @@ export class SchedulerStateService {
 
       // Filter events for this day
       const dayEvents = events.filter(event =>
-        isWithinInterval(event.displayStart, { start: dayStart, end: dayEnd }) ||
-        isWithinInterval(event.displayEnd, { start: dayStart, end: dayEnd }) ||
-        (isBefore(event.displayStart, dayStart) &&
-          isBefore(dayEnd, event.displayEnd))
-      );
+        isWithinInterval(this.dateUtil.parseISOString(event.start), { start: dayStart, end: dayEnd }) ||
+        isWithinInterval(this.dateUtil.parseISOString(event.end), { start: dayStart, end: dayEnd }) ||
+        (isBefore(this.dateUtil.parseISOString(event.start), dayStart) &&
+          isBefore(dayEnd, this.dateUtil.parseISOString(event.end)))
+      ).map(event => {
+        const displayStart = this.dateUtil.parseISOString(event.start);
+        const displayEnd = this.dateUtil.parseISOString(event.end);
+
+        return {
+          ...event,
+          displayStart,
+          displayEnd,
+          isMultiDaySpan: !this.dateUtil.isSameDay(displayStart, displayEnd),
+          continuesBefore: isBefore(displayStart, dayStart),
+          continuesAfter: isBefore(dayEnd, displayEnd),
+          originalEvent: event
+        };
+      });
 
       // Layout events for time grid
       const processedEvents = this.layoutService.layoutEventsForTimeGrid(
-        dayEvents,
-        date,
+        dayEvents.filter(e => !e.allDay && !e.isMultiDaySpan),
         this._dayStartHour(),
         this._dayEndHour()
       );
+
+      // Add all-day events back
+      const allDayEvents = dayEvents.filter(e => e.allDay || e.isMultiDaySpan);
 
       return {
         date,
         isToday: this.dateUtil.isSameDay(date, today),
         isCurrentMonth: true,
         isWeekend: [0, 6].includes(this.dateUtil.getDay(date)),
-        events: processedEvents
+        events: [...processedEvents, ...allDayEvents]
       };
     });
   });
 
+  // Data for day view
   readonly dayViewHours = computed(() => {
     if (this._currentView() !== 'day') return [];
 
     const date = this.parsedCenterDate();
     const tz = this._timeZone();
-    const events = this.displayEvents();
+    const events = this.processedEvents();
 
     // Get hours for the day
     const hours = this.dateUtil.getHoursOfDay(
@@ -210,34 +231,61 @@ export class SchedulerStateService {
       tz
     );
 
+    const dayStart = startOfDay(date);
+    const dayEnd = endOfDay(date);
+
+    // Filter events for this day
+    const dayEvents = events.filter(event =>
+      isWithinInterval(this.dateUtil.parseISOString(event.start), { start: dayStart, end: dayEnd }) ||
+      isWithinInterval(this.dateUtil.parseISOString(event.end), { start: dayStart, end: dayEnd }) ||
+      (isBefore(this.dateUtil.parseISOString(event.start), dayStart) &&
+        isBefore(dayEnd, this.dateUtil.parseISOString(event.end)))
+    ).map(event => {
+      const displayStart = this.dateUtil.parseISOString(event.start);
+      const displayEnd = this.dateUtil.parseISOString(event.end);
+
+      return {
+        ...event,
+        displayStart,
+        displayEnd,
+        isMultiDaySpan: !this.dateUtil.isSameDay(displayStart, displayEnd),
+        continuesBefore: isBefore(displayStart, dayStart),
+        continuesAfter: isBefore(dayEnd, displayEnd),
+        originalEvent: event
+      };
+    });
+
+    // Layout events for time grid
+    const processedEvents = this.layoutService.layoutEventsForTimeGrid(
+      dayEvents.filter(e => !e.allDay && !e.isMultiDaySpan),
+      this._dayStartHour(),
+      this._dayEndHour()
+    );
+
+    // Add all-day events
+    const allDayEvents = dayEvents.filter(e => e.allDay || e.isMultiDaySpan);
+
     return hours.map(hourSlot => {
       const hourStart = hourSlot.date;
       const hourEnd = this.dateUtil.addHours(hourSlot.date, 1);
 
       // Filter events for this hour
-      const hourEvents = events.filter(event =>
+      const hourEvents = processedEvents.filter(event =>
         this.dateUtil.isWithinInterval(event.displayStart, { start: hourStart, end: hourEnd }) ||
         this.dateUtil.isWithinInterval(event.displayEnd, { start: hourStart, end: hourEnd }) ||
         (isBefore(event.displayStart, hourStart) &&
           isBefore(hourEnd, event.displayEnd))
       );
 
-      // Layout events for this hour
-      const processedEvents = this.layoutService.layoutEventsForTimeGrid(
-        hourEvents,
-        date,
-        this._dayStartHour(),
-        this._dayEndHour()
-      );
-
       return {
         date: hourSlot.date,
         label: hourSlot.label,
-        events: processedEvents
+        events: [...hourEvents, ...allDayEvents]
       };
     });
   });
 
+  // Get day names for week header
   readonly weekDayNames = computed(() => {
     const start = startOfWeek(new Date(), {
       locale: this.dateUtil.getLocale(this._locale()),
@@ -253,6 +301,7 @@ export class SchedulerStateService {
     );
   });
 
+  // Get title for current view
   readonly viewTitle = computed(() => {
     const date = this.parsedCenterDate();
     const loc = this._locale();
@@ -300,6 +349,19 @@ export class SchedulerStateService {
     this.dateUtil.setTimeZone(timeZone);
   }
 
+  setDayStartHour(hour: number): void {
+    this._dayStartHour.set(hour);
+  }
+
+  setDayEndHour(hour: number): void {
+    this._dayEndHour.set(hour);
+  }
+
+  setWeekStartsOn(day: 0 | 1 | 2 | 3 | 4 | 5 | 6): void {
+    this._weekStartsOn.set(day);
+  }
+
+  // Navigation methods
   navigate(direction: 'prev' | 'next' | 'today'): void {
     let newDate = this.parsedCenterDate();
 
@@ -313,13 +375,13 @@ export class SchedulerStateService {
 
     switch (this._currentView()) {
       case 'month':
-        newDate = this.dateUtil.addMonths(newDate, amount);
+        newDate = addMonths(newDate, amount);
         break;
       case 'week':
-        newDate = this.dateUtil.addWeeks(newDate, amount);
+        newDate = addWeeks(newDate, amount);
         break;
       case 'day':
-        newDate = this.dateUtil.addDays(newDate, amount);
+        newDate = addDays(newDate, amount);
         break;
     }
 

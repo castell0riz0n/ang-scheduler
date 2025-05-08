@@ -25,8 +25,6 @@ import {
 } from 'date-fns';
 import { CommonModule } from '@angular/common';
 import { EventItemComponent } from '../event-item/event-item.component';
-import {debounceTime, fromEvent} from 'rxjs';
-import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 
 // Define interface for hour segments (matching the week view)
 interface HourSegment {
@@ -55,7 +53,6 @@ export class MonthViewComponent implements AfterViewInit {
   hoursRange = input<{ start: number, end: number }>({ start: 0, end: 24 });
 
   eventDeleted = output<CalendarEvent>();
-
   eventDropped = output<{ event: CalendarEvent, newStart: string, newEnd: string }>();
   slotClicked = output<string>();
   eventClicked = output<CalendarEvent>();
@@ -86,6 +83,31 @@ export class MonthViewComponent implements AfterViewInit {
     }
 
     return segments;
+  });
+
+  // Used for week-based layout
+  weekRows = computed(() => {
+    // Group days into weeks for easier rendering
+    const days = this.days();
+    const rows: DayViewModel[][] = [];
+    let currentRow: DayViewModel[] = [];
+
+    days.forEach((day, index) => {
+      currentRow.push(day);
+
+      // Start a new row after every 7 days
+      if ((index + 1) % 7 === 0) {
+        rows.push([...currentRow]);
+        currentRow = [];
+      }
+    });
+
+    // Add any remaining days
+    if (currentRow.length > 0) {
+      rows.push([...currentRow]);
+    }
+
+    return rows;
   });
 
   ngAfterViewInit() {
@@ -229,7 +251,6 @@ export class MonthViewComponent implements AfterViewInit {
   }
 
   onEventClick(event: DisplayCalendarEvent, domEvent: MouseEvent) {
-    //domEvent?.stopPropagation();
     this.eventClicked.emit(event.originalEvent);
   }
 
@@ -253,16 +274,14 @@ export class MonthViewComponent implements AfterViewInit {
     return day.events.filter(event => event.allDay || event.isMultiDaySpan);
   }
 
-// Get regular timed events for a specific day
+  // Get regular timed events for a specific day
   getRegularEvents(day: DayViewModel): DisplayCalendarEvent[] {
     return day.events.filter(event => !event.allDay && !event.isMultiDaySpan);
   }
 
-// Handle event deletion
+  // Handle event deletion
   onEventDelete(event: DisplayCalendarEvent, domEvent: MouseEvent) {
-    //domEvent?.stopPropagation();
     // Emit the delete event to parent component
-    // You'll need to add a new output for this
     this.eventDeleted.emit(event.originalEvent);
   }
 }

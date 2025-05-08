@@ -1,7 +1,7 @@
 ﻿import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { HourViewModel, DisplayCalendarEvent } from '../models/calendar-event.model';
+import { HourViewModel, DisplayCalendarEvent } from '../../models/calendar-event.model';
 
 @Component({
   selector: 'app-time-grid',

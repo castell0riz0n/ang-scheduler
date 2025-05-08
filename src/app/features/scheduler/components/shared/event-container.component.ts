@@ -1,8 +1,8 @@
 ﻿import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { DisplayCalendarEvent } from '../models/calendar-event.model';
-import { EventItemComponent } from './event-item/event-item.component';
+import { DisplayCalendarEvent } from '../../models/calendar-event.model';
+import { EventItemComponent } from '../event-item/event-item.component';
 
 @Component({
   selector: 'app-event-container',

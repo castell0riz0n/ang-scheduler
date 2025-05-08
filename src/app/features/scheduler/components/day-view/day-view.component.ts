@@ -2,7 +2,7 @@ import {Component, ChangeDetectionStrategy, ViewChild, AfterViewInit, ElementRef
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { BaseViewComponent } from '../base-view.component';
+import { BaseViewComponent } from '../shared/base-view.component';
 import { EventItemComponent } from '../event-item/event-item.component';
 import { HourViewModel } from '../../models/calendar-event.model';
 import { computed } from '@angular/core';
@@ -21,8 +21,8 @@ import {getHours, getMinutes} from 'date-fns';
   styleUrls: ['./day-view.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DayViewComponent extends BaseViewComponent implements AfterViewInit {
-  // Specific inputs for day view
+export class DayViewComponent extends BaseViewComponent {
+
   hours = input.required<HourViewModel[]>();
 
   // For virtual scrolling
@@ -55,7 +55,7 @@ export class DayViewComponent extends BaseViewComponent implements AfterViewInit
   });
 
   // Override abstract method
-  protected initializeView(): void {
+  protected override initializeView(): void {
     if (this.eventsViewport && this.timeGutterViewport) {
       this.eventsViewport.elementScrolled().subscribe(() => {
         if (this.eventsViewport && this.timeGutterViewport) {
@@ -72,6 +72,6 @@ export class DayViewComponent extends BaseViewComponent implements AfterViewInit
 
   // Handle drop in day view
   onTimeSlotDropLocal(dropEvent: any, hour: HourViewModel): void {
-    super.onTimeSlotDrop(dropEvent, this.currentViewDate(), getHours(hour.date), getMinutes(hour.date));
+    super.onTimeSlotDrop(dropEvent, this.currentViewDate()!, getHours(hour.date), getMinutes(hour.date));
   }
 }

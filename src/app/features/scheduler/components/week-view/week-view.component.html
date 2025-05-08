@@ -1,30 +1,38 @@
+<!-- week-view.component.html -->
 <div class="week-view" role="grid" [attr.aria-label]="'Week view showing events'">
-  <!-- Week Header Row -->
-  <div class="week-header d-flex sticky-top bg-body shadow-sm" role="row">
-    <div class="time-gutter-header bg-body-tertiary" role="columnheader" aria-label="Time">
-      <span class="visually-hidden">Time</span>
-    </div>
-    @for (day of days(); track day.date.toISOString(); let dayIndex = $index) {
-      <div
-        class="week-header-cell flex-fill text-center p-2 border-start user-select-none"
-        [id]="'weekDayHeader-' + dayIndex"
-        [class.bg-primary-subtle]="day.isToday"
-        [class.text-primary]="day.isToday"
-        role="columnheader"
-        [attr.aria-label]="dateUtil.formatInTimeZone(day.date, timeZone(), 'EEEE, MMM d', locale())"
-      >
-        <div class="small text-uppercase">{{ weekDayNames()[dayIndex] }}</div>
-        <div class="fw-bold fs-5">{{ dateUtil.formatInTimeZone(day.date, timeZone(), 'd', locale()) }}</div>
+  <!-- Week Header Container with hidden scrollbar -->
+  <div class="week-header-container sticky-top bg-body shadow-sm">
+    <div class="week-header d-flex" #headerContent>
+      <!-- Time Gutter Header -->
+      <div class="time-gutter-header bg-body-tertiary" role="columnheader" aria-label="Time">
+        <span class="visually-hidden">Time</span>
       </div>
-    }
+
+      <!-- Day Headers -->
+      <div class="week-day-headers d-flex flex-grow-1">
+        @for (day of days(); track day.date.toISOString(); let dayIndex = $index) {
+          <div
+            class="week-header-cell flex-fill text-center p-2 border-start user-select-none"
+            [id]="'weekDayHeader-' + dayIndex"
+            [class.bg-primary-subtle]="day.isToday"
+            [class.text-primary]="day.isToday"
+            role="columnheader"
+            [attr.aria-label]="dateUtil.formatInTimeZone(day.date, timeZone(), 'EEEE, MMM d', locale())"
+          >
+            <div class="small text-uppercase">{{ weekDayNames()[dayIndex] }}</div>
+            <div class="fw-bold fs-5">{{ dateUtil.formatInTimeZone(day.date, timeZone(), 'd', locale()) }}</div>
+          </div>
+        }
+      </div>
+    </div>
   </div>
 
   <!-- Scrollable Body containing Time Gutter and Day Columns -->
-  <div class="week-body-scroll-container position-relative" style="height: 70vh; overflow-y: auto;">
-    <div class="d-flex h-100"> <!-- Flex container for gutter and days grid -->
+  <div class="week-body-scroll-container" #weekBodyScrollContainer (scroll)="syncHeaderScroll()">
+    <div class="d-flex h-100" [style.width]="calculateContentWidth()">
       <!-- Time Gutter (Hour Labels) -->
       <div class="time-gutter-body sticky-left bg-body-tertiary user-select-none" role="presentation">
-        @for(hour of hourSegments(); track hour.displayLabel) {
+        @for (hour of hourSegments(); track hour.date.toISOString()) {
           <div
             class="hour-label text-end pe-2 text-muted small d-flex align-items-center justify-content-end"
             [style.height.px]="hourSegmentHeight()"
@@ -36,13 +44,14 @@
         }
       </div>
 
-      <!-- Grid of Day Columns (Each day column contains hour slots and events) -->
+      <!-- Grid of Day Columns -->
       <div class="week-grid-days d-flex flex-grow-1" role="rowgroup">
         @for (day of days(); track day.date.toISOString(); let dayIndex = $index) {
           <div
             class="day-column flex-fill border-start position-relative"
             role="gridcell"
             [attr.aria-labelledby]="'weekDayHeader-' + dayIndex"
+            [class.today-column]="day.isToday"
           >
             <!-- All-day events section -->
             <div class="all-day-events-container border-bottom">
@@ -57,6 +66,8 @@
                   [attr.aria-label]="event.title + ' (All day)'"
                   (dblclick)="handleEventItemClicked(event, $event)"
                   (click)="handleEventItemClicked(event, $event)"
+                  (keydown.enter)="handleEventItemClicked(event, $event)"
+                  (keydown.space)="$event.preventDefault(); handleEventItemClicked(event, $event)"
                 >
                   <app-event-item
                     [event]="event"
@@ -71,7 +82,7 @@
               }
             </div>
 
-            <!-- Hour Slots for dropping - these create the droppable grid and visual lines -->
+            <!-- Hour Slots for dropping -->
             @for(hourSegment of hourSegments(); track hourSegment.date.toISOString(); let hourIndex = $index) {
               <div
                 class="hour-slot border-bottom"

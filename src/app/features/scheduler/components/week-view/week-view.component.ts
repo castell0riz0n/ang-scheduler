@@ -1,10 +1,14 @@
-import { Component, ChangeDetectionStrategy, input, output, inject, computed, signal } from '@angular/core';
+// week-view.component.ts
+import { Component, ChangeDetectionStrategy, input, output, inject, computed, signal, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CdkDragDrop, CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { CalendarEvent, DayViewModel, DisplayCalendarEvent } from '../../models/calendar-event.model';
 import { DateUtilService } from '../../services/date.service';
 import { addMinutes, differenceInMinutes, getHours, getMinutes, startOfDay, setHours, setMinutes } from 'date-fns';
 import { CommonModule } from '@angular/common';
 import { EventItemComponent } from '../event-item/event-item.component';
+import { AllDayEventsComponent } from '../shared/all-day-events.component';
+import { TimeGutterComponent } from '../shared/time-gutter.component';
+import { DayHeadersComponent } from '../shared/day-headers.component';
 
 interface HourSegment {
   date: Date;
@@ -23,7 +27,8 @@ interface HourSegment {
   styleUrls: ['./week-view.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class WeekViewComponent {
+export class WeekViewComponent implements AfterViewInit {
+  // Preserve the original inputs
   days = input.required<DayViewModel[]>();
   weekDayNames = input.required<string[]>();
   hoursRange = input.required<{ start: number, end: number }>();
@@ -31,6 +36,7 @@ export class WeekViewComponent {
   locale = input<string>('en-US');
   timeZone = input<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
+  // Preserve the original outputs
   eventDropped = output<{ event: CalendarEvent, newStart: string, newEnd: string }>();
   eventMoveEdit = output<{ event: CalendarEvent, newStart: string, newEnd: string }>();
   slotClicked = output<string>();
@@ -38,9 +44,14 @@ export class WeekViewComponent {
   eventDeleted = output<CalendarEvent>();
 
   public dateUtil = inject(DateUtilService);
+  private cdr = inject(ChangeDetectorRef);
 
   public hourSegmentHeight = signal(80); // Increased from 60px to 80px
   public minuteHeight = computed(() => this.hourSegmentHeight() / 60);
+
+  // ViewChild references for synchronized scrolling
+  @ViewChild('headerContent') headerContent?: ElementRef<HTMLElement>;
+  @ViewChild('weekBodyScrollContainer') weekBodyScrollContainer?: ElementRef<HTMLElement>;
 
   hourSegments = computed<HourSegment[]>(() => {
     const range = this.hoursRange();
@@ -55,6 +66,57 @@ export class WeekViewComponent {
     }
     return segments;
   });
+
+  ngAfterViewInit() {
+    // Initialize the header position and width
+    this.updateHeaderPosition();
+
+    // Scroll to business hours (e.g., 9 AM)
+    this.scrollToBusinessHours();
+  }
+
+  // Calculate the total width needed for the content area
+  calculateContentWidth(): string {
+    const dayCount = this.days().length;
+    return `${60 + (dayCount * 150)}px`; // 60px for time gutter + (150px per day)
+  }
+
+  // Synchronize header scroll position with body scroll
+  syncHeaderScroll(): void {
+    if (!this.headerContent || !this.weekBodyScrollContainer) return;
+
+    // Update the transform of the header content to match body scroll
+    const scrollLeft = this.weekBodyScrollContainer.nativeElement.scrollLeft;
+    this.headerContent.nativeElement.style.transform = `translateX(-${scrollLeft}px)`;
+  }
+
+  // Update the header position and ensure width matches body content
+  updateHeaderPosition(): void {
+    if (!this.headerContent || !this.weekBodyScrollContainer) return;
+
+    // Ensure header content has the same width as body content
+    const bodyWidth = this.calculateContentWidth();
+    this.headerContent.nativeElement.style.width = bodyWidth;
+
+    // Initial sync of scroll position
+    this.syncHeaderScroll();
+
+    // Trigger change detection to apply styles
+    this.cdr.detectChanges();
+  }
+
+  // Scroll to normal business hours (e.g., 9 AM)
+  scrollToBusinessHours(): void {
+    setTimeout(() => {
+      if (this.weekBodyScrollContainer) {
+        const businessHourStart = 9; // 9 AM
+        const hourHeight = this.hourSegmentHeight();
+        const scrollTop = businessHourStart * hourHeight;
+
+        this.weekBodyScrollContainer.nativeElement.scrollTop = scrollTop;
+      }
+    }, 100);
+  }
 
   onTimeSlotDrop(
     dropEvent: CdkDragDrop<any, any, DisplayCalendarEvent>,

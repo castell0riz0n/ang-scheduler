@@ -1,18 +1,20 @@
-﻿import { Directive, input, output, inject, ElementRef, AfterViewInit } from '@angular/core';
+﻿// base-view.component.ts
+import { Directive, input, output, inject, signal, computed } from '@angular/core';
 import { CdkDragDrop, CdkDragEnd } from '@angular/cdk/drag-drop';
-import { CalendarEvent, DisplayCalendarEvent, DayViewModel, HourViewModel } from '../models/calendar-event.model';
-import { DateUtilService } from '../services/date.service';
-import { SchedulerLayoutService } from '../services/scheduler-layout.service';
+import { CalendarEvent, DisplayCalendarEvent, DayViewModel, HourViewModel } from '../../models/calendar-event.model';
+import { DateUtilService } from '../../services/date.service';
+import { SchedulerLayoutService, ViewLayoutConfig } from '../../services/scheduler-layout.service';
 import { addMinutes, differenceInMinutes, getHours, getMinutes, setHours, setMinutes } from 'date-fns';
 
 @Directive()
-export abstract class BaseViewComponent implements AfterViewInit {
+export abstract class BaseViewComponent {
   // Common inputs for all view components
-  events = input.required<DisplayCalendarEvent[]>();
-  currentViewDate = input.required<Date>();
+  days = input<DayViewModel[]>();
+  weekDayNames = input<string[]>();
+  hoursRange = input<{ start: number, end: number }>({ start: 0, end: 24 });
+  currentViewDate = input<Date>();
   locale = input<string>('en-US');
   timeZone = input<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  hourSegmentHeight = input<number>(80);
 
   // Common outputs
   eventDropped = output<{ event: CalendarEvent, newStart: string, newEnd: string }>();
@@ -25,15 +27,33 @@ export abstract class BaseViewComponent implements AfterViewInit {
   protected dateUtil = inject(DateUtilService);
   protected layoutService = inject(SchedulerLayoutService);
 
-  ngAfterViewInit(): void {
-    this.initializeView();
-  }
+  // Common UI settings
+  public hourSegmentHeight = signal(80);
+  public minuteHeight = computed(() => this.hourSegmentHeight() / 60);
+
+  // Common computed properties
+  hourSegments = computed(() => {
+    const range = this.hoursRange();
+    const segments: { date: Date, displayLabel: string }[] = [];
+    const baseDateForHourIteration = new Date(2000, 0, 1);
+
+    for (let h = range.start; h < range.end; h++) {
+      const hourUtc = setMinutes(setHours(baseDateForHourIteration, h), 0);
+      segments.push({
+        date: hourUtc,
+        displayLabel: this.dateUtil.formatInTimeZone(hourUtc, this.timeZone(), 'p', this.locale())
+      });
+    }
+
+    return segments;
+  });
 
   /**
-   * Initialize view-specific elements
-   * (to be implemented by child classes)
+   * Initialize view-specific elements (to be called in ngAfterViewInit)
    */
-  protected abstract initializeView(): void;
+  protected initializeView(): void {
+    // To be implemented by child classes
+  }
 
   /**
    * Handle click on a time slot
@@ -128,27 +148,18 @@ export abstract class BaseViewComponent implements AfterViewInit {
    */
   protected getEventStyle(event: DisplayCalendarEvent): any {
     // Use layoutService to calculate position
-    const config = {
+    const config: ViewLayoutConfig = {
       hourHeight: this.hourSegmentHeight(),
-      dayStartHour: 0, // This should be from input
-      dayEndHour: 24,  // This should be from input
-      columnWidth: 150
+      dayStartHour: this.hoursRange().start,
+      dayEndHour: this.hoursRange().end
     };
 
     // Get position from layout service
-    const position = this.layoutService.calculateEventPosition(
+    return this.layoutService.calculateEventPosition(
       event,
       'day', // This should be dynamic based on current view
       config
     );
-
-    // Add color properties
-    return {
-      ...position,
-      borderLeft: '4px solid ' + (event.color?.primary || 'var(--event-default-color)'),
-      backgroundColor: event.color?.secondary || 'var(--event-default-bg)',
-      color: event.color?.textColor || 'var(--event-default-text)'
-    };
   }
 
   protected onDragEnded(event: CdkDragEnd<DisplayCalendarEvent>): void {

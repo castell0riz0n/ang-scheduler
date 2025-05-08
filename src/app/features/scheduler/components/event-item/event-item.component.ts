@@ -1,4 +1,5 @@
-﻿import {ChangeDetectionStrategy, Component, computed, input, output} from '@angular/core';
+﻿// event-item.component.ts (updated)
+import {ChangeDetectionStrategy, Component, computed, input, output} from '@angular/core';
 import {DisplayCalendarEvent} from '../../models/calendar-event.model';
 import {DateUtilService} from '../../services/date.service';
 import {CommonModule} from '@angular/common';
@@ -61,6 +62,7 @@ import {CommonModule} from '@angular/common';
       transition: all 0.2s ease;
       height: 100%;
       overflow: hidden;
+      width: 100%;
     }
 
     .scheduler-event:hover {
@@ -138,7 +140,7 @@ import {CommonModule} from '@angular/common';
       --event-specific-text: var(--bs-warning-text-emphasis);
     }
 
-    /* Multi-day indicators */
+    /* Multi-day indicators - Now implemented with pseudo-elements in the container */
     .continues-before::before {
       content: "◀";
       position: absolute;

@@ -20,8 +20,8 @@ import { DayViewComponent } from './components/day-view/day-view.component';
     DayViewComponent
   ],
   template: `
+    <!-- scheduler.component.html (corrected day view section) -->
     <div class="scheduler-container card">
-      <!-- Header Toolbar -->
       <div class="card-header scheduler-toolbar d-flex justify-content-between align-items-center p-2">
         <div class="btn-group" role="group" aria-label="Navigation">
           <button type="button" class="btn btn-outline-secondary btn-sm" (click)="navigate('prev')" [attr.aria-label]="'Previous ' + currentView()">
@@ -38,18 +38,9 @@ import { DayViewComponent } from './components/day-view/day-view.component';
         <h5 class="scheduler-title mb-0 mx-3 text-center flex-grow-1">{{ state.viewTitle() }}</h5>
 
         <div class="btn-group" role="group" aria-label="View Modes">
-          <button type="button" class="btn btn-sm"
-                  [class.btn-primary]="currentView() === 'month'"
-                  [class.btn-outline-primary]="currentView() !== 'month'"
-                  (click)="setView('month')">Month</button>
-          <button type="button" class="btn btn-sm"
-                  [class.btn-primary]="currentView() === 'week'"
-                  [class.btn-outline-primary]="currentView() !== 'week'"
-                  (click)="setView('week')">Week</button>
-          <button type="button" class="btn btn-sm"
-                  [class.btn-primary]="currentView() === 'day'"
-                  [class.btn-outline-primary]="currentView() !== 'day'"
-                  (click)="setView('day')">Day</button>
+          <button type="button" class="btn btn-sm" [class.btn-primary]="currentView() === 'month'" [class.btn-outline-primary]="currentView() !== 'month'" (click)="setView('month')">Month</button>
+          <button type="button" class="btn btn-sm" [class.btn-primary]="currentView() === 'week'" [class.btn-outline-primary]="currentView() !== 'week'" (click)="setView('week')">Week</button>
+          <button type="button" class="btn btn-sm" [class.btn-primary]="currentView() === 'day'" [class.btn-outline-primary]="currentView() !== 'day'" (click)="setView('day')">Day</button>
         </div>
       </div>
 
@@ -98,7 +89,6 @@ import { DayViewComponent } from './components/day-view/day-view.component';
           }
           @case ('day') {
             <app-day-view
-              [events]="state.displayEvents()"
               [hours]="state.dayViewHours()"
               [currentViewDate]="state.parsedCenterDate()"
               [locale]="locale()"
@@ -123,7 +113,7 @@ import { DayViewComponent } from './components/day-view/day-view.component';
 })
 export class SchedulerComponent {
   // --- Simplified Inputs ---
-  events = input.required<CalendarEvent[]>();
+  events = input<CalendarEvent[]>([]);
   initialView = input<SchedulerView>('month');
   initialCenterDate = input<string>(new Date().toISOString());
   filter = input<SchedulerFilter>({});
@@ -164,6 +154,12 @@ export class SchedulerComponent {
 
     // Emit view changed event when view or date changes
     this.setupViewChangedEmitter();
+
+    effect(() => {
+      if (this.events().length > 0) {
+        this.state.setEvents(this.events());
+      }
+    });
   }
 
   private setupInputWatchers(): void {
