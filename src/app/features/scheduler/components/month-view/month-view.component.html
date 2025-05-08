@@ -1,8 +1,10 @@
 <div class="month-view-grid">
   <!-- Header Row -->
-  <div *ngFor="let dayName of weekDayNames()" class="month-header-cell text-center fw-semibold small text-muted text-uppercase">
-    {{ dayName }}
-  </div>
+  @for (dayName of weekDayNames(); track $index) {
+    <div class="month-header-cell text-center fw-semibold small text-muted text-uppercase">
+      {{ dayName }}
+    </div>
+  }
 
   <!-- Day Cells -->
   @for (day of days(); track dayTrackBy($index, day)) {
@@ -13,7 +15,7 @@
       [class.weekend-day]="day.isWeekend"
       (click)="onSlotClick(day)"
       cdkDropList
-      [cdkDropListData]="day"  <!-- Pass day data to drop event -->
+      [cdkDropListData]="day"
       (cdkDropListDropped)="onEventDrop($event)"
       >
     <div class="day-number" [class.text-primary]="day.isToday">

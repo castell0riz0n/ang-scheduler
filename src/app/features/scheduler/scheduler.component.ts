@@ -6,6 +6,11 @@ import {
    parseISO, isBefore,
    getHours, addHours, differenceInMinutes, startOfWeek
 } from 'date-fns';
+import {CommonModule} from '@angular/common';
+import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MonthViewComponent} from './components/month-view/month-view.component';
+import {WeekViewComponent} from './components/week-view/week-view.component';
+import {DayViewComponent} from './components/day-view/day-view.component';
 // Helper function to generate ISO date strings
 function toISODateString(date: Date): string {
   return date.toISOString().split('.')[0]; // Remove milliseconds for simplicity if not needed
@@ -22,7 +27,15 @@ export interface SchedulerFilter {
 
 @Component({
   selector: 'app-scheduler',
-  standalone: false,
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MonthViewComponent,
+    WeekViewComponent,
+    DayViewComponent
+  ],
   templateUrl: './scheduler.component.html',
   styleUrls: ['./scheduler.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -22,12 +22,14 @@
   </div>
 
   <!-- TODO: Filter Bar Component -->
-  <div class="scheduler-filters p-2 border-bottom d-flex gap-2 align-items-center" *ngIf="false">
+  @if (false) {
+  <div class="scheduler-filters p-2 border-bottom d-flex gap-2 align-items-center" >
     <input type="text" class="form-control form-control-sm" placeholder="Search events..."
            (input)="$any($event.target).value"> <!-- Connect to filter.keyword -->
     <button class="btn btn-sm btn-outline-secondary" (click)="openDateRangePicker()">Date Range</button>
     <!-- Multi-select for types -->
   </div>
+  }
 
   <div class="card-body scheduler-view-port p-0" [attr.aria-live]="'polite'" [attr.aria-atomic]="'true'">
     @switch (currentView()) {

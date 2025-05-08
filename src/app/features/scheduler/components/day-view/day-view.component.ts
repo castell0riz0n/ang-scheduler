@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, input, output, inject, computed, signal, ViewChild, AfterViewInit, ElementRef } from '@angular/core';
-import { CdkDragDrop, CdkDragEnd } from '@angular/cdk/drag-drop';
+import {CdkDragDrop, CdkDragEnd, DragDropModule} from '@angular/cdk/drag-drop';
 
-import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
+import {CdkVirtualScrollViewport, ScrollingModule} from '@angular/cdk/scrolling';
 import { CalendarEvent, HourViewModel, DisplayCalendarEvent } from '../../models/calendar-event.model';
 import { DateUtilService } from '../../services/date.service';
 import {
@@ -12,10 +12,18 @@ import {
 
   endOfDay
 } from 'date-fns';
+import {CommonModule} from '@angular/common';
+import {EventItemComponent} from '../event-item/event-item.component';
 
 @Component({
   selector: 'app-day-view',
-  standalone: false,
+  standalone: true,
+  imports: [
+    CommonModule,
+    DragDropModule,
+    ScrollingModule,
+    EventItemComponent
+  ],
   templateUrl: './day-view.component.html',
   styleUrls: ['./day-view.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

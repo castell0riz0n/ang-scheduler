@@ -1,8 +1,10 @@
 import { Component, ChangeDetectionStrategy, input, output, inject, computed, signal } from '@angular/core';
-import { CdkDragDrop, CdkDragEnd } from '@angular/cdk/drag-drop';
+import {CdkDragDrop, CdkDragEnd, DragDropModule} from '@angular/cdk/drag-drop';
 import { CalendarEvent, DayViewModel, DisplayCalendarEvent } from '../../models/calendar-event.model';
 import { DateUtilService } from '../../services/date.service';
-import { addMinutes, differenceInMinutes, getHours, getMinutes, startOfDay, isBefore, setHours, setMinutes } from 'date-fns'; // Ensure all needed are imported
+import { addMinutes, differenceInMinutes, getHours, getMinutes, startOfDay, isBefore, setHours, setMinutes } from 'date-fns';
+import {CommonModule} from '@angular/common';
+import {EventItemComponent} from '../event-item/event-item.component'; // Ensure all needed are imported
 
 interface HourSegment {
   date: Date; // UTC Date representing the start of this hour segment (e.g., on a generic day, hour matters)
@@ -11,7 +13,12 @@ interface HourSegment {
 
 @Component({
   selector: 'app-week-view',
-  standalone: false,
+  standalone: true,
+  imports: [
+    CommonModule,
+    DragDropModule,
+    EventItemComponent
+  ],
   templateUrl: './week-view.component.html',
   styleUrls: ['./week-view.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

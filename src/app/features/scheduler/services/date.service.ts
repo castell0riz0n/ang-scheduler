@@ -66,7 +66,7 @@ export class DateUtilService {
     // If dateString is UTC '2023-01-01T10:00:00Z', use parseISO directly
     // For local times in TZ, convert to UTC first for consistent Date objects
     const parsedAsNaive = parseISO(dateString); // Date-fns parses as local machine if no Z
-    return zonedTimeToUtc(parsedAsNaive, timeZone); // More robust might be needed based on source string nature
+    return this.zonedTimeToUtc(parsedAsNaive, timeZone); // More robust might be needed based on source string nature
   }
 
   parseNaiveStringWithTz(naiveDateString: string, timeZone: string): Date {
@@ -77,7 +77,7 @@ export class DateUtilService {
     // `parseISO` on a naive string creates a Date object as if it's local machine time.
     // Then `zonedTimeToUtc` correctly interprets this naive time as being in `timeZone`.
     const dateInMachineLocal = parseISO(naiveDateString);
-    return zonedTimeToUtc(dateInMachineLocal, timeZone);
+    return this.zonedTimeToUtc(dateInMachineLocal, timeZone);
   }
 
   convertToZone(date: Date, timeZone: string): Date { // Input is UTC Date, output is also UTC Date (conceptually representing time in TZ)
@@ -239,5 +239,12 @@ export class DateUtilService {
     // The event's newStart/newEnd string must be an ISO string interpretable by parseWithTz.
     // For now, let's return UTC. The emitted ISO string will be from this UTC.
     return newDate;
+  }
+
+  zonedTimeToUtc(zonedDate: Date, timeZone: string): Date {
+    const date = new Date(zonedDate.getTime());
+    const tzOffset = new Date(date.toLocaleString('en-US', { timeZone })).getTime() -
+      new Date(date.toLocaleString('en-US')).getTime();
+    return new Date(date.getTime() - tzOffset);
   }
 }

@@ -1,12 +1,26 @@
 import { Component, input, output, computed, ChangeDetectionStrategy, inject } from '@angular/core';
-import { CdkDragDrop, CdkDragStart, CdkDragEnd, transferArrayItem, moveItemInArray } from '@angular/cdk/drag-drop';
+import {
+  CdkDragDrop,
+  CdkDragStart,
+  CdkDragEnd,
+  transferArrayItem,
+  moveItemInArray,
+  DragDropModule
+} from '@angular/cdk/drag-drop';
 import { CalendarEvent, DisplayCalendarEvent, DayViewModel } from '../../models/calendar-event.model';
 import { DateUtilService } from '../../services/date.service';
 import {startOfDay, addMinutes, differenceInMinutes, isBefore, addDays, endOfDay, differenceInDays} from 'date-fns';
+import {CommonModule} from '@angular/common';
+import {EventItemComponent} from '../event-item/event-item.component';
 
 @Component({
   selector: 'app-month-view',
-  standalone: false,
+  standalone: true,
+  imports: [
+    CommonModule,
+    DragDropModule,
+    EventItemComponent
+  ],
   templateUrl: './month-view.component.html',
   styleUrls: ['./month-view.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,10 +1,14 @@
 ﻿import { Component, input, output, ChangeDetectionStrategy, computed } from '@angular/core';
 import { DisplayCalendarEvent } from '../../models/calendar-event.model';
 import {DateUtilService} from '../../services/date.service';
+import {CommonModule} from '@angular/common';
 
 @Component({
   selector: 'app-event-item',
-  standalone: false,
+  standalone: true,
+  imports: [
+    CommonModule
+  ],
   template: `
     <div
       class="scheduler-event"
@@ -21,9 +25,9 @@ import {DateUtilService} from '../../services/date.service';
       <strong class="event-title">{{ event().title }}</strong>
       @if (!event().allDay && !isMonthView()) {
         <span class="event-time">
-         {{ this.dateUtil.format(event().displayStart, 'p', currentLocale(), currentTimeZone()) }} -
-         {{ this.dateUtil.format(event().displayEnd, 'p', currentLocale(), currentTimeZone()) }}
-        </span>
+   {{ this.dateUtil.format(event().displayStart, 'p', currentLocale(), currentTimeZone()) }} -
+          {{ this.dateUtil.format(event().displayEnd, 'p', currentLocale(), currentTimeZone()) }}
+  </span>
       }
     </div>
   `,
