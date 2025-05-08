@@ -1,4 +1,4 @@
-<div class="day-view" role="grid" [attr.aria-label]="'Day view for ' + dateUtil.formatInTimeZone(currentViewDate(), timeZone(), 'EEEE, MMM d', locale())">
+<div class="day-view" role="grid" [attr.aria-label]="'Day view for ' + dateUtil.formatInTimeZone(currentViewDate()!, timeZone(), 'EEEE, MMM d', locale())">
   <!-- All-Day Events Section -->
   <div
     id="all-day-drop-list"
@@ -6,7 +6,7 @@
     role="rowgroup"
     cdkDropList
     [cdkDropListData]="{ isAllDayTarget: true }"
-    (cdkDropListDropped)="onTimeSlotDrop($event, hours()[0])"
+    (cdkDropListDropped)="onTimeSlotDropLocal($event, hours()[0])"
   >
     <div class="all-day-header text-muted small ps-2 user-select-none" role="rowheader">All-day</div>
     @if (allDayEventsList().length === 0) {
@@ -72,12 +72,12 @@
               role="button"
               tabindex="0"
               [attr.aria-label]="'Time slot for ' + hour.label"
-              (click)="handleTimeSlotClick(hour)"
-              (keydown.enter)="handleTimeSlotClick(hour)"
-              (keydown.space)="$event.preventDefault(); handleTimeSlotClick(hour)"
+              (click)="handleTimeSlotClickLocal(hour)"
+              (keydown.enter)="handleTimeSlotClickLocal(hour)"
+              (keydown.space)="$event.preventDefault(); handleTimeSlotClickLocal(hour)"
               cdkDropList
               [cdkDropListData]="hour"
-              (cdkDropListDropped)="onTimeSlotDrop($event, hour)"
+              (cdkDropListDropped)="onTimeSlotDropLocal($event, hour)"
             >
               <!-- Visual line -->
             </div>

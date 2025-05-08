@@ -30,6 +30,7 @@ export interface DisplayCalendarEvent extends CalendarEvent {
   gridColumnIndex?: number; // Calculated duration
   originalEvent: CalendarEvent; // Reference to original event
   gridColumnCount?: number;
+  multiDayGroupId?: string;
 }
 
 export interface DayViewModel {
