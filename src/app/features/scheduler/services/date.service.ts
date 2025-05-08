@@ -258,4 +258,17 @@ export class DateUtilService {
       new Date(date.toLocaleString('en-US')).getTime();
     return new Date(date.getTime() - tzOffset);
   }
+
+  differenceInWeeks(dateLeft: Date, dateRight: Date): number {
+    // Calculate the difference in weeks, rounded down
+    const diffTime = Math.abs(dateLeft.getTime() - dateRight.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.floor(diffDays / 7);
+  }
+
+  isSameWeek(dateLeft: Date, dateRight: Date, weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 1): boolean {
+    const startOfWeekLeft = startOfWeek(dateLeft, { weekStartsOn });
+    const startOfWeekRight = startOfWeek(dateRight, { weekStartsOn });
+    return isSameDay(startOfWeekLeft, startOfWeekRight);
+  }
 }

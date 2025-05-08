@@ -3,8 +3,8 @@ import { CalendarEvent, DisplayCalendarEvent, DayViewModel, HourViewModel } from
 import { DateUtilService } from './services/date.service';
 import {
   startOfDay, endOfDay, isWithinInterval,
-   parseISO, isBefore,
-   getHours, addHours, differenceInMinutes, startOfWeek
+  parseISO, isBefore,
+  getHours, addHours, differenceInMinutes, startOfWeek, addMinutes
 } from 'date-fns';
 import {CommonModule} from '@angular/common';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
@@ -57,6 +57,8 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
   // Optional Input for event type colors
   eventTypeColors = input<Record<string, { background: string; border?: string; text?: string }>>({});
 
+  pendingEventSlot = signal<{ date: string, timeZone: string } | null>(null);
+
   // --- Outputs ---
   eventMoved = output<{ event: CalendarEvent, newStart: string, newEnd: string }>();
   viewChanged = output<{ view: SchedulerView, centerDateISO: string, viewStartISO: string, viewEndISO: string }>();
@@ -72,9 +74,10 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
   currentCenterDate = model<string>(this.initialCenterDate());
 
   // Scroll container references for centering views
+  @ViewChild(MonthViewComponent) monthViewComponent?: MonthViewComponent;
   @ViewChild('monthViewContainer') monthViewContainerRef?: ElementRef<HTMLElement>;
-  @ViewChild('weekViewContainer') weekViewContainerRef?: ElementRef<HTMLElement>; // Scrollable part of week view
-  @ViewChild('dayViewContainer') dayViewContainerRef?: ElementRef<HTMLElement>;   // Scrollable part of day view
+  @ViewChild('weekViewContainer') weekViewContainerRef?: ElementRef<HTMLElement>;
+  @ViewChild('dayViewContainer') dayViewContainerRef?: ElementRef<HTMLElement>;
 
 
   // --- Computed Signals for View Logic ---
@@ -420,18 +423,38 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
     this.currentView.set(view);
   }
 
+  private getMonthViewComponent(): any {
+    if (!this.monthViewContainerRef) return null;
+
+    // Access the component instance - note this is a simplified approach
+    // In a more complete solution, you might use ViewChild with read: ComponentRef
+    return this.monthViewContainerRef.nativeElement.querySelector('app-month-view');
+  }
+
   navigate(direction: 'prev' | 'next' | 'today') {
     let newCenterDate = this._parsedCenterDate();
     if (direction === 'today') {
       newCenterDate = new Date();
-    } else {
-      const amount = direction === 'prev' ? -1 : 1;
-      switch (this.currentView()) {
-        case 'month': newCenterDate = this.dateUtil.addMonths(newCenterDate, amount); break;
-        case 'week': newCenterDate = this.dateUtil.addWeeks(newCenterDate, amount); break;
-        case 'day': newCenterDate = this.dateUtil.addDays(newCenterDate, amount); break;
-      }
+      this.currentCenterDate.set(toISODateString(newCenterDate));
+
+      // Use the properly typed ViewChild reference
+      setTimeout(() => {
+        if (this.currentView() === 'month' && this.monthViewComponent) {
+          this.monthViewComponent.scrollToToday();
+        }
+      }, 50);
+
+      return;
     }
+
+    // Rest of existing navigation logic for prev/next...
+    const amount = direction === 'prev' ? -1 : 1;
+    switch (this.currentView()) {
+      case 'month': newCenterDate = this.dateUtil.addMonths(newCenterDate, amount); break;
+      case 'week': newCenterDate = this.dateUtil.addWeeks(newCenterDate, amount); break;
+      case 'day': newCenterDate = this.dateUtil.addDays(newCenterDate, amount); break;
+    }
+
     this.currentCenterDate.set(toISODateString(newCenterDate));
   }
 
@@ -449,7 +472,49 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
   }
 
   handleSlotClicked(dateTimeIso: string) {
-    this.slotClicked.emit({ date: dateTimeIso, timeZone: this.timeZone() });
+    // Instead of immediately creating an event, just record the slot information
+    this.pendingEventSlot.set({
+      date: dateTimeIso,
+      timeZone: this.timeZone()
+    });
+
+    // Emit the slot click event (the parent app can use this to show a form)
+    this.slotClicked.emit({
+      date: dateTimeIso,
+      timeZone: this.timeZone()
+    });
+  }
+
+  createEventFromSlot(eventDetails: {
+    title: string;
+    type: string;
+    description?: string;
+    allDay?: boolean;
+    durationMinutes?: number;
+  }) {
+    const slot = this.pendingEventSlot();
+    if (!slot) return null;
+
+    const startTime = new Date(slot.date);
+    const endTime = addMinutes(startTime, eventDetails.durationMinutes || 60);
+
+    const newEvent: CalendarEvent = {
+      id: `event-${Date.now()}`, // Generate a temporary ID
+      title: eventDetails.title,
+      type: eventDetails.type,
+      start: startTime.toISOString(),
+      end: endTime.toISOString(),
+      allDay: eventDetails.allDay || false,
+      data: {
+        description: eventDetails.description || ''
+      }
+    };
+
+    // Reset pending slot
+    this.pendingEventSlot.set(null);
+
+    // Return the created event (parent app should add it to the events list)
+    return newEvent;
   }
 
   handleEventClicked(event: CalendarEvent) {
@@ -463,9 +528,10 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
     // Needs `afterNextRender` or `afterRender` for reliability if DOM elements are conditional
     Promise.resolve().then(() => { // Wait for microtask queue / next render cycle
       let container: HTMLElement | undefined;
-      if (this.currentView() === 'month' && this.monthViewContainerRef) {
-        container = this.monthViewContainerRef.nativeElement;
-        // For month, center could mean scroll the week of centerDate into view
+      if (this.currentView() === 'month' && this.monthViewComponent) {
+        // Use the component method directly
+        this.monthViewComponent.scrollToCurrentViewDate();
+        return;
       } else if (this.currentView() === 'week' && this.weekViewContainerRef) {
         // @ts-ignore
         container = this.weekViewContainerRef.nativeElement.querySelector(`.day-column-${this.dateUtil.getDay(this._parsedCenterDate())}`)! || this.weekViewContainerRef?.nativeElement!;
@@ -506,4 +572,6 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
   getAriaLiveMessage(): string {
     return `Calendar view changed to ${this.currentView()}. Displaying dates around ${this.viewTitle()}.`;
   }
+
+
 }

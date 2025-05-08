@@ -2,48 +2,132 @@
 @import 'bootstrap/scss/variables';
 @import 'bootstrap/scss/mixins';
 
-.month-view-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  border: 1px solid var(--bs-border-color);
-  overflow: hidden; /* Prevents scrollbars from small overflows */
+:host {
+  display: block;
+  height: 100%;
+}
+
+.month-view-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.month-header {
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.time-gutter-header {
+  flex-basis: 60px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--bs-border-color);
+  border-right: 1px solid var(--bs-border-color);
+  position: sticky;
+  left: 0;
+  z-index: 30; /* Higher than time-gutter-body to stay on top */
+  background-color: var(--bs-tertiary-bg);
 }
 
 .month-header-cell {
   padding: 0.5rem 0.25rem;
   border-bottom: 1px solid var(--bs-border-color);
+  flex-basis: 0;
+  flex-grow: 1;
+  min-width: 150px; /* Minimum width for each day column */
 }
 
-.month-day-cell {
-  position: relative; // For absolute positioning of day number if needed
-  min-height: 120px; // Or make responsive with aspect-ratio
-  padding: 0.25rem;
+.month-body-scroll-container {
+  overflow-x: auto;
+  flex-grow: 1;
+  position: relative;
+  height: calc(100% - 38px); /* Adjust based on header height */
+}
+
+.time-gutter-body {
+  flex-basis: 60px;
+  flex-shrink: 0;
   border-right: 1px solid var(--bs-border-color);
-  border-bottom: 1px solid var(--bs-border-color);
-  overflow-y: auto; /* Allow scroll if too many events for fixed height */
+  position: sticky;
+  left: 0;
+  z-index: 20; /* Ensure it's above day cells when scrolling */
+  background-color: var(--bs-body-bg); /* Match body background to avoid transparency */
+}
 
-  &:nth-child(7n) { // Last cell in a row
-    border-right: none;
-  }
-  // &:nth-last-child(-n + 7) { // Last row cells if fixed number of rows
-  //   border-bottom: none;
-  // }
+.hour-label {
+  padding-right: 8px;
+  height: 60px; /* Default height */
+  font-size: 0.75rem;
+}
 
-  &.weekend-day {
-    background-color: var(--bs-tertiary-bg); /* Light gray for weekends */
+.month-days-row {
+  display: flex;
+  width: auto;
+}
+
+.month-day-column {
+  display: flex;
+  flex-direction: column;
+  flex-basis: 0;
+  flex-grow: 1;
+  min-width: 150px; /* Match header width */
+  position: relative;
+  overflow: hidden; /* Hide overflow content */
+
+  &.today-column {
+    background-color: var(--bs-primary-bg-subtle);
   }
 }
 
-.day-number {
-  font-size: 0.85rem;
-  font-weight: 500;
+.day-number-header {
+  flex-shrink: 0;
+  height: 28px;
+  line-height: 28px;
+  padding: 0 8px;
   text-align: right;
-  padding-right: 0.25rem;
-  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  background-color: rgba(var(--bs-tertiary-bg-rgb), 0.5);
 }
 
-.events-container {
-  // Add styles for event stacking if needed
+.hour-slots-container {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.hour-slot {
+  position: relative;
+  height: 60px; /* Default height */
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+  }
+}
+
+.events-overlay {
+  pointer-events: none; /* Let clicks through to slots underneath */
+  padding-top: 28px; /* Match day number header height */
+}
+
+.month-event-item-wrapper {
+  pointer-events: auto; /* Make events clickable */
+  max-width: 95%;
+  margin: 0 auto;
+  z-index: 10;
+}
+
+.overflow-indicator {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  padding: 2px;
+  font-size: 11px;
+  cursor: pointer;
+  z-index: 20;
 }
 
 .cdk-drag-preview {
@@ -59,6 +143,15 @@
   opacity: 0.3;
   border: 1px dashed #ccc;
   background: #f0f0f0;
-  min-height: 20px; /* Or match event item height */
+  min-height: 20px;
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
+
+.drag-placeholder {
+  border: 2px dashed var(--bs-primary);
+  background: rgba(var(--bs-primary-rgb), 0.1);
+  min-height: 30px;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+

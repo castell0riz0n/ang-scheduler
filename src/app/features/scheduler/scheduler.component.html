@@ -39,6 +39,7 @@
             [days]="monthViewDays()"
             [weekDayNames]="weekDayNames()"
             [currentViewDate]="_parsedCenterDate()"
+            [hoursRange]="{ start: dayStartHour(), end: dayEndHour() }"
             [locale]="locale()"
             [timeZone]="timeZone()"
             (eventDropped)="handleEventDropped($event)"

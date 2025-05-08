@@ -131,12 +131,14 @@ import { startOfDay, addHours } from 'date-fns';
         </div>
       </div>
 
-      @if (selectedEvent) {
+      @if (selectedEvent || currentSlot) {
         <div class="modal d-block" tabindex="-1" role="dialog">
           <div class="modal-dialog" role="document">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title">{{ editMode ? 'Edit Event' : 'Event Details' }}</h5>
+                <h5 class="modal-title">
+                  {{ selectedEvent ? 'Edit Event' : 'Create New Event' }}
+                </h5>
                 <button type="button" class="btn-close" (click)="closeModal()"></button>
               </div>
               <div class="modal-body">
@@ -189,30 +191,31 @@ import { startOfDay, addHours } from 'date-fns';
                   </form>
                 } @else {
                   <div>
-                    <h4>{{ selectedEvent.title }}</h4>
+                    <h4>{{ selectedEvent?.title }}</h4>
                     <p class="text-muted">
-                      <span class="badge" [ngClass]="getTypeClass(selectedEvent.type)">{{ selectedEvent.type }}</span>
+                      <span class="badge" [ngClass]="getTypeClass(selectedEvent?.type)">{{ selectedEvent?.type }}</span>
                     </p>
                     <p>
-                      <strong>Start:</strong> {{ formatDate(selectedEvent.start) }}<br>
-                      <strong>End:</strong> {{ formatDate(selectedEvent.end) }}
+                      <strong>Start:</strong> {{ formatDate(selectedEvent?.start) }}<br>
+                      <strong>End:</strong> {{ formatDate(selectedEvent?.end) }}
                     </p>
-                    @if (selectedEvent.data?.description) {
+                    @if (selectedEvent?.data?.description) {
                       <h5>Description</h5>
-                      <p>{{ selectedEvent.data.description }}</p>
+                      <p>{{ selectedEvent?.data.description }}</p>
                     }
                   </div>
                 }
               </div>
               <div class="modal-footer">
-                @if (editMode) {
+                @if (selectedEvent) {
+                  <!-- Buttons for editing existing event -->
                   <button type="button" class="btn btn-danger me-auto" (click)="deleteEvent()">Delete</button>
                   <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
                   <button type="button" class="btn btn-primary" (click)="saveEvent()">Save</button>
                 } @else {
-                  <button type="button" class="btn btn-danger me-auto" (click)="deleteEvent()">Delete</button>
-                  <button type="button" class="btn btn-secondary" (click)="closeModal()">Close</button>
-                  <button type="button" class="btn btn-primary" (click)="enableEditMode()">Edit</button>
+                  <!-- Buttons for creating new event -->
+                  <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+                  <button type="button" class="btn btn-primary" (click)="saveEvent()">Create Event</button>
                 }
               </div>
             </div>
@@ -228,6 +231,7 @@ export class SchedulerDemoComponent implements OnInit {
   events: CalendarEvent[] = [];
   selectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   selectedLocale = 'en-US';
+  currentSlot: { date: string, timeZone: string } | null = null;
 
   selectedEvent: CalendarEvent | null = null;
   editMode = false;
@@ -260,20 +264,31 @@ export class SchedulerDemoComponent implements OnInit {
   }
 
   onSlotClicked(slotData: { date: string, timeZone: string }): void {
-    const startTime = new Date(slotData.date);
+    // Just store the slot information
+    this.currentSlot = slotData;
+
+    // Show the event creation modal
+    this.selectedEvent = null;  // Clear any existing selected event
+    this.createNewEventForm();  // Create a form for a new event
+    this.editMode = true;       // Enable edit mode for the form
+  }
+
+  createNewEventForm(): void {
+    if (!this.currentSlot) return;
+
+    const startTime = new Date(this.currentSlot.date);
     const endTime = addHours(startTime, 1);
 
-    const newEvent: Omit<CalendarEvent, 'id'> = {
-      title: 'New Event',
-      type: 'meeting',
-      start: startTime.toISOString(),
-      end: endTime.toISOString(),
-      data: { description: '' }
-    };
-
-    const createdEvent = this.demoEventService.addEvent(newEvent);
-    this.selectedEvent = createdEvent;
-    this.enableEditMode();
+    this.eventForm = this.fb.group({
+      title: ['New Event', Validators.required],
+      type: ['meeting', Validators.required],
+      allDay: [false],
+      startDate: [this.formatDateForInput(startTime), Validators.required],
+      startTime: [this.formatTimeForInput(startTime), Validators.required],
+      endDate: [this.formatDateForInput(endTime), Validators.required],
+      endTime: [this.formatTimeForInput(endTime), Validators.required],
+      description: ['']
+    });
   }
 
   addQuickEvent(): void {
@@ -312,7 +327,7 @@ export class SchedulerDemoComponent implements OnInit {
   }
 
   saveEvent(): void {
-    if (!this.eventForm || !this.selectedEvent) return;
+    if (!this.eventForm || (!this.selectedEvent && !this.currentSlot)) return;
 
     if (this.eventForm.valid) {
       const formValues = this.eventForm.value;
@@ -325,23 +340,40 @@ export class SchedulerDemoComponent implements OnInit {
       const endTime = formValues.endTime.split(':');
       endDate.setHours(parseInt(endTime[0], 10), parseInt(endTime[1], 10));
 
-      const updatedEvent: CalendarEvent = {
-        ...this.selectedEvent,
-        title: formValues.title,
-        type: formValues.type,
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
-        allDay: formValues.allDay,
-        data: {
-          ...this.selectedEvent.data,
-          description: formValues.description
-        }
-      };
+      if (this.selectedEvent) {
+        // Update existing event
+        const updatedEvent: CalendarEvent = {
+          ...this.selectedEvent,
+          title: formValues.title,
+          type: formValues.type,
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          allDay: formValues.allDay,
+          data: {
+            ...this.selectedEvent.data,
+            description: formValues.description
+          }
+        };
 
-      this.demoEventService.updateEvent(updatedEvent);
+        this.demoEventService.updateEvent(updatedEvent);
+      } else {
+        // Create new event
+        const newEvent: Omit<CalendarEvent, 'id'> = {
+          title: formValues.title,
+          type: formValues.type,
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          allDay: formValues.allDay,
+          data: { description: formValues.description }
+        };
+
+        this.demoEventService.addEvent(newEvent);
+      }
+
       this.closeModal();
     }
   }
+
 
   deleteEvent(): void {
     if (this.selectedEvent) {
@@ -349,9 +381,9 @@ export class SchedulerDemoComponent implements OnInit {
       this.closeModal();
     }
   }
-
   closeModal(): void {
     this.selectedEvent = null;
+    this.currentSlot = null;
     this.editMode = false;
     this.eventForm = null;
   }
