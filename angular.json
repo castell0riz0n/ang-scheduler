@@ -39,8 +39,7 @@
               }
             ],
             "styles": [
-              "src/styles.scss",
-              "node_modules/bootstrap-icons/font/css/bootstrap-icons.css"
+              "src/styles.scss"
             ],
             "scripts": []
           },

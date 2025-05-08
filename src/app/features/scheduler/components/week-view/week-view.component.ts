@@ -27,6 +27,7 @@ export class WeekViewComponent {
   days = input.required<DayViewModel[]>();
   weekDayNames = input.required<string[]>();
   hoursRange = input.required<{ start: number, end: number }>();
+  currentViewDate = input.required<Date>();
   locale = input<string>('en-US');
   timeZone = input<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
 

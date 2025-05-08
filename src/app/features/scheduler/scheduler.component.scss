@@ -1,3 +1,7 @@
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins';
+
 :host {
   display: block;
   // CSS Custom Properties for Event Theming (can be overridden by users)

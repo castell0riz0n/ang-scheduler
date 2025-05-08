@@ -10,7 +10,7 @@ import {ScrollingModule} from '@angular/cdk/scrolling';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
   ],
   imports: [
     CommonModule,
