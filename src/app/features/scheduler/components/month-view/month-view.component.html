@@ -1,0 +1,50 @@
+<div class="month-view-grid">
+  <!-- Header Row -->
+  <div *ngFor="let dayName of weekDayNames()" class="month-header-cell text-center fw-semibold small text-muted text-uppercase">
+    {{ dayName }}
+  </div>
+
+  <!-- Day Cells -->
+  @for (day of days(); track dayTrackBy($index, day)) {
+    <div
+      class="month-day-cell"
+      [class.bg-light]="!day.isCurrentMonth"
+      [class.border-primary]="day.isToday"
+      [class.weekend-day]="day.isWeekend"
+      (click)="onSlotClick(day)"
+      cdkDropList
+      [cdkDropListData]="day"  <!-- Pass day data to drop event -->
+      (cdkDropListDropped)="onEventDrop($event)"
+      >
+    <div class="day-number" [class.text-primary]="day.isToday">
+      {{ day.date | date:'d' }}
+    </div>
+    <div class="events-container">
+      @for (event of getEventsForCell(day); track eventTrackBy($index, event)) {
+        <div
+          cdkDrag
+          [cdkDragData]="event"
+          (cdkDragStarted)="onDragStarted($event, event)"
+          (cdkDragEnded)="onDragEnded($event, event)"
+        >
+          <app-event-item
+            [event]="event"
+            viewType="month"
+            [currentLocale]="locale()"
+            [currentTimeZone]="timeZone()"
+            (eventEdited)="onEventClick(event, $event)"
+            (click)="onEventClick(event, $event)"
+          ></app-event-item>
+          <!-- You can add a drag handle here with cdkDragHandle if needed -->
+          <div *cdkDragPlaceholder class="drag-placeholder"></div>
+        </div>
+      }
+      @if (getOverflowCount(day) > 0) {
+        <div class="text-muted small mt-1" (click)="$event.stopPropagation(); onSlotClick(day)">
+          +{{ getOverflowCount(day) }} more
+        </div>
+      }
+    </div>
+    </div>
+  }
+</div>

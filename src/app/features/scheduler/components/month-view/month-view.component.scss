@@ -1,0 +1,64 @@
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins';
+
+.month-view-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border: 1px solid var(--bs-border-color);
+  overflow: hidden; /* Prevents scrollbars from small overflows */
+}
+
+.month-header-cell {
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.month-day-cell {
+  position: relative; // For absolute positioning of day number if needed
+  min-height: 120px; // Or make responsive with aspect-ratio
+  padding: 0.25rem;
+  border-right: 1px solid var(--bs-border-color);
+  border-bottom: 1px solid var(--bs-border-color);
+  overflow-y: auto; /* Allow scroll if too many events for fixed height */
+
+  &:nth-child(7n) { // Last cell in a row
+    border-right: none;
+  }
+  // &:nth-last-child(-n + 7) { // Last row cells if fixed number of rows
+  //   border-bottom: none;
+  // }
+
+  &.weekend-day {
+    background-color: var(--bs-tertiary-bg); /* Light gray for weekends */
+  }
+}
+
+.day-number {
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: right;
+  padding-right: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.events-container {
+  // Add styles for event stacking if needed
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 4px;
+  box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+  0 8px 10px 1px rgba(0, 0, 0, 0.14),
+  0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  opacity: 0.8;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+  border: 1px dashed #ccc;
+  background: #f0f0f0;
+  min-height: 20px; /* Or match event item height */
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}

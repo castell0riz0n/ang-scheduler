@@ -1,0 +1,111 @@
+<div class="day-view" role="grid" [attr.aria-label]="'Day view for ' + dateUtil.formatInTimeZone(currentViewDate(), timeZone(), 'EEEE, MMM d', locale())">
+  <!-- All-Day Events Section -->
+  <div
+    id="all-day-drop-list"
+    class="all-day-events-section border-bottom p-2 bg-body-tertiary"
+    role="rowgroup"
+    cdkDropList
+    [cdkDropListData]="{ isAllDayTarget: true }"
+    (cdkDropListDropped)="onTimeSlotDrop($event, hours()[0])"
+  > <!-- Dropping on any hour with flag or specific container ID -->
+    <div class="all-day-header text-muted small ps-2 user-select-none" role="rowheader">All-day</div>
+    @if (allDayEventsList().length === 0) {
+      <div class="text-muted small p-2 fst-italic">No all-day events. Drag here to make an event all-day.</div>
+    }
+    @for(event of allDayEventsList(); track event.id) {
+      <div
+        cdkDrag
+        [cdkDragData]="event"
+        (cdkDragEnded)="onDragEnded($event)"
+        class="my-1"
+        role="gridcell"
+        (dblclick)="handleEventItemClicked(event, $event)"
+        (click)="handleEventItemClicked(event, $event)"
+        (keydown.enter)="handleEventItemClicked(event, $event)"
+        (keydown.space)="$event.preventDefault(); handleEventItemClicked(event, $event)"
+        tabindex="0"
+      >
+        <app-event-item [event]="event" viewType="day" [currentLocale]="locale()" [currentTimeZone]="timeZone()" (eventEdited)="handleEventItemClicked(event, $event)"></app-event-item>
+        <div *cdkDragPlaceholder class="drag-placeholder bg-info-subtle"></div>
+      </div>
+    }
+  </div>
+
+  <!-- Main Timed Event Area -->
+  <div class="day-body d-flex position-relative" style="height: 75vh;"> <!-- Adjust height as needed -->
+    <!-- Time Gutter (Hour Labels) -->
+    <div class="time-gutter-body sticky-left bg-body-tertiary user-select-none" role="presentation">
+      <cdk-virtual-scroll-viewport #timeGutterViewport [itemSize]="hourSegmentHeight()" class="h-100">
+        <div *cdkVirtualFor="let hour of hours() ">
+          <div
+            class="hour-label text-end pe-2 text-muted small d-flex align-items-center justify-content-end"
+            [style.height.px]="hourSegmentHeight()"
+            role="rowheader"
+            [attr.aria-label]="hour.label"
+          >
+            {{ hour.label }}
+          </div>
+        </div>
+      </cdk-virtual-scroll-viewport>
+    </div>
+
+    <!-- Event Pane (where timed events are rendered over droppable hour slots) -->
+    <div class="event-pane flex-grow-1 position-relative" role="presentation">
+      <!-- Virtual Scroll for Hour Slots (Drop Targets) -->
+      <cdk-virtual-scroll-viewport #eventsViewport [itemSize]="hourSegmentHeight()" class="h-100">
+        <div
+          *cdkVirtualFor="let hour of hours(); let i = index"
+          class="hour-slot-container position-relative"
+          [style.height.px]="hourSegmentHeight()"
+          role="gridcell"
+        > <!-- Container for each hour's drop target -->
+          <div
+            class="hour-slot-droppable w-100 h-100 border-bottom"
+            role="button"
+            tabindex="0"
+            [attr.aria-label]="'Time slot for ' + hour.label"
+            (click)="handleTimeSlotClick(hour)"
+            (keydown.enter)="handleTimeSlotClick(hour)"
+            (keydown.space)="$event.preventDefault(); handleTimeSlotClick(hour)"
+            cdkDropList
+            [cdkDropListData]="hour"
+          (cdkDropListDropped)="onTimeSlotDrop($event, hour)"
+          >
+          <!-- Visual line -->
+        </div>
+    </div>
+    </cdk-virtual-scroll-viewport>
+
+    <!-- Overlay for Absolutely Positioned Timed Events -->
+    <!-- This div must cover the entire scrollable area of the viewport content for correct positioning -->
+    <div class="events-overlay position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;"> <!-- No pointer events for overlay itself -->
+      @for(event of allTimedEvents(); track event.id) {
+        <div
+          cdkDrag
+          [cdkDragData]="event"
+          (cdkDragEnded)="onDragEnded($event)"
+          class="day-event-item-wrapper position-absolute"
+          style="pointer-events: auto;"
+          [style]="getEventStyle(event)"
+          role="button"
+          tabindex="0"
+          [attr.aria-label]="event.title + ', from ' + dateUtil.formatInTimeZone(event.displayStart, timeZone(), 'p', locale()) + ' to ' + dateUtil.formatInTimeZone(event.displayEnd, timeZone(), 'p', locale())"
+          (dblclick)="handleEventItemClicked(event, $event)"
+          (click)="handleEventItemClicked(event, $event)"
+          (keydown.enter)="handleEventItemClicked(event, $event)"
+          (keydown.space)="$event.preventDefault(); handleEventItemClicked(event, $event)"
+          >
+        <app-event-item
+          [event]="event"
+          viewType="day"
+          [currentLocale]="locale()"
+          [currentTimeZone]="timeZone()"
+          (eventEdited)="handleEventItemClicked(event, $event)"
+        ></app-event-item>
+        <div *cdkDragPlaceholder class="drag-placeholder bg-info-subtle"></div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+</div>

@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  height: 100%; // Ensure host can fill container for relative % heights if used
+}
+
+.day-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.all-day-events-section {
+  flex-shrink: 0;
+  max-height: 150px; // Example max height
+  overflow-y: auto;
+}
+
+.day-body {
+  flex-grow: 1;
+  min-height: 0; // Allows flex item to shrink properly
+}
+
+.time-gutter-body {
+  flex-basis: 60px; // Adjust width as needed
+  flex-shrink: 0;
+  overflow: hidden; // Gutter viewport handles its scroll
+}
+
+.event-pane {
+  overflow: hidden; // Events viewport handles its scroll
+}
+
+.hour-slot-droppable {
+  &:hover {
+    background-color: var(--bs-tertiary-bg);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: -1px;
+    background-color: var(--bs-primary-bg-subtle);
+  }
+}
+.drag-placeholder { // General drag placeholder style
+  border: 2px dashed var(--bs-primary);
+  background: rgba(var(--bs-primary-rgb), 0.1);
+  min-height: 30px; // Match typical event item height
+  border-radius: 4px;
+  box-sizing: border-box;
+}

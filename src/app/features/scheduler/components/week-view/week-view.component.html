@@ -1,0 +1,96 @@
+<div class="week-view" role="grid" [attr.aria-label]="'Week view showing events'">
+  <!-- Week Header Row -->
+  <div class="week-header d-flex sticky-top bg-body shadow-sm" role="row">
+    <div class="time-gutter-header bg-body-tertiary" role="columnheader" aria-label="Time"><span class="visually-hidden">Time</span></div>
+    @for (day of days(); track day.date.toISOString(); let dayIndex = $index) {
+      <div
+        class="week-header-cell flex-fill text-center p-2 border-start user-select-none"
+        [id]="'weekDayHeader-' + dayIndex"
+        [class.bg-primary-subtle]="day.isToday"
+        [class.text-primary]="day.isToday"
+        role="columnheader"
+        [attr.aria-label]="dateUtil.formatInTimeZone(day.date, timeZone(), 'EEEE, MMM d', locale())"
+      >
+        <div class="small text-uppercase">{{ weekDayNames()[dayIndex] }}</div>
+        <div class="fw-bold fs-5">{{ dateUtil.formatInTimeZone(day.date, timeZone(), 'd', locale()) }}</div>
+      </div>
+    }
+  </div>
+
+  <!-- Scrollable Body containing Time Gutter and Day Columns -->
+  <div class="week-body-scroll-container position-relative" style="height: 70vh; overflow-y: auto;">
+    <div class="d-flex h-100"> <!-- Flex container for gutter and days grid -->
+      <!-- Time Gutter (Hour Labels) -->
+      <div class="time-gutter-body sticky-left bg-body-tertiary user-select-none" role="presentation">
+        @for(hour of hourSegments(); track hour.displayLabel) {
+          <div
+            class="hour-label text-end pe-2 text-muted small d-flex align-items-center justify-content-end"
+            [style.height.px]="hourSegmentHeight()"
+            role="rowheader"
+            [attr.aria-label]="hour.displayLabel"
+          >
+            {{ hour.displayLabel }}
+          </div>
+        }
+      </div>
+
+      <!-- Grid of Day Columns (Each day column contains hour slots and events) -->
+      <div class="week-grid-days d-flex flex-grow-1" role="rowgroup">
+        @for (day of days(); track day.date.toISOString(); let dayIndex = $index) {
+          <div
+            class="day-column flex-fill border-start position-relative"
+            role="gridcell"
+            [attr.aria-labelledby]="'weekDayHeader-' + dayIndex"
+          >
+            <!-- Hour Slots for dropping - these create the droppable grid and visual lines -->
+            @for(hourSegment of hourSegments(); track hourSegment.date.toISOString(); let hourIndex = $index) {
+              <div
+                class="hour-slot border-bottom"
+                [style.height.px]="hourSegmentHeight()"
+                role="button"
+                [attr.aria-label]="'Time slot for ' + hourSegment.displayLabel + ' on ' + dateUtil.formatInTimeZone(day.date, timeZone(), 'EEEE', locale())"
+                tabindex="0"
+                (click)="handleTimeSlotClick(day, hourSegment)"
+                (keydown.enter)="handleTimeSlotClick(day, hourSegment)"
+                (keydown.space)="$event.preventDefault(); handleTimeSlotClick(day, hourSegment)"
+                cdkDropList
+                [cdkDropListData]="{ day: day, hourSegment: hourSegment }"
+                (cdkDropListDropped)="onTimeSlotDrop($event, day, hourSegment)"
+              >
+                <!-- Visual cue for half-hour if needed, via pseudo-element or inner div -->
+              </div>
+            }
+
+            <!-- Events for this day, absolutely positioned OVER the hour slots -->
+            <!-- The parent container 'day-column' must have relative positioning -->
+            @for(event of day.events; track event.id) {
+              <div
+                cdkDrag
+                [cdkDragData]="event"
+                (cdkDragEnded)="onDragEnded($event)"
+                class="week-event-item-wrapper position-absolute"
+                [style]="getEventStyle(event)"
+                role="button"
+                tabindex="0"
+                [attr.aria-label]="event.title + ', from ' + dateUtil.formatInTimeZone(event.displayStart, timeZone(), 'p', locale()) + ' to ' + dateUtil.formatInTimeZone(event.displayEnd, timeZone(), 'p', locale()) + ' on ' + dateUtil.formatInTimeZone(day.date, timeZone(), 'EEEE', locale())"
+                (dblclick)="handleEventItemClicked(event, $event)"
+                (click)="handleEventItemClicked(event, $event)"
+                (keydown.enter)="handleEventItemClicked(event, $event)"
+                (keydown.space)="$event.preventDefault(); handleEventItemClicked(event, $event)"
+                >
+              <app-event-item
+                [event]="event"
+                viewType="week"
+                [currentLocale]="locale()"
+                [currentTimeZone]="timeZone()"
+                (eventEdited)="handleEventItemClicked(event, $event)"
+              ></app-event-item>
+              <div *cdkDragPlaceholder class="drag-placeholder bg-info-subtle"></div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

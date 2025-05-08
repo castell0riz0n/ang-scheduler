@@ -1,0 +1,48 @@
+:host {
+  display: block;
+  // CSS Custom Properties for Event Theming (can be overridden by users)
+  --event-default-color: #{$primary}; // Bootstrap primary
+  --event-default-bg: #{rgba($primary, 0.15)};
+  --event-default-text: #{$body-color}; // Bootstrap body color
+
+  // Example: For a type 'meeting'
+  // --event-type-meeting-bg: var(--bs-success-bg-subtle);
+  // --event-type-meeting-border: var(--bs-success);
+  // --event-type-meeting-text: var(--bs-success-text-emphasis);
+
+  // Light/Dark mode support (Leverage Bootstrap's color modes if v5.3+)
+  // Bootstrap 5.3+ uses data-bs-theme="dark" or data-bs-theme="light" on <html>
+  // You can use CSS variables that adapt to these themes.
+}
+
+.scheduler-container {
+  height: 100%; // Or a specific height if needed, e.g., 80vh
+  display: flex;
+  flex-direction: column;
+}
+
+.scheduler-toolbar {
+  flex-shrink: 0;
+}
+
+.scheduler-filters {
+  flex-shrink: 0;
+}
+
+.scheduler-view-port {
+  flex-grow: 1;
+  overflow: hidden; // Main container hides scroll, views manage their own
+  position: relative; // For positioning loading indicators, etc.
+}
+
+// View specific containers that might need their own scroll
+.week-view-container, .day-view-container {
+  height: 100%;
+  overflow-y: auto; // For hour scrolling
+}
+
+// Basic RTL support - Bootstrap handles most of it if html[dir="rtl"] is set.
+// Custom adjustments might be needed.
+:host-context([dir="rtl"]) {
+  // Example: .scheduler-toolbar { flex-direction: row-reverse; } if BS doesn't cover
+}
