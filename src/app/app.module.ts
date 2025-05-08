@@ -7,7 +7,6 @@ import {CommonModule} from '@angular/common';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {DragDropModule} from '@angular/cdk/drag-drop';
 import {ScrollingModule} from '@angular/cdk/scrolling';
-import {SchedulerModule} from './scheduler/scheduler.module';
 
 @NgModule({
   declarations: [
@@ -20,7 +19,6 @@ import {SchedulerModule} from './scheduler/scheduler.module';
     DragDropModule,
     ScrollingModule,
     BrowserModule,
-    SchedulerModule,
     AppRoutingModule
   ],
   providers: [],

@@ -8,9 +8,9 @@ import {
   addHours as dfnsAddHours, addMinutes as dfnsAddMinutes, // alias
   differenceInMinutes, startOfDay, endOfDay, isValid,
   Locale,
-  setHours
+  setHours, isBefore
 } from 'date-fns';
-import { utcToZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { RRule, RRuleSet, rrulestr } from 'rrule';
 import { da, de, enUS, es, fr, it, ja, ko, nl, pl, pt, ru, zhCN } from 'date-fns/locale'; // Import locales you need
 import { CalendarEvent } from '../models/calendar-event.model';
@@ -81,7 +81,7 @@ export class DateUtilService {
   }
 
   convertToZone(date: Date, timeZone: string): Date { // Input is UTC Date, output is also UTC Date (conceptually representing time in TZ)
-    return utcToZonedTime(date, timeZone);
+    return toZonedTime(date, timeZone);
   }
 
   formatInTimeZone(date: Date, timeZone: string, formatString: string, localeCode?: string): string {
@@ -126,7 +126,11 @@ export class DateUtilService {
   getDayViewRange(date: Date) {
     const start = startOfDay(date);
     const end = endOfDay(date);
-    return { start, end };
+    return {
+      start,
+      end,
+      days: [new Date(start)] // For day view, there's only one day
+    };
   }
 
   getHoursOfDay(baseDate: Date, startHour: number, endHour: number, tz: string): { date: Date, label: string }[] {
@@ -218,7 +222,14 @@ export class DateUtilService {
           console.error('Error parsing RRULE for event:', event.id, e);
           const eventStartUtc = this.parseISOString(event.start);
           const eventEndUtc = this.parseISOString(event.end);
-          if(this.isWithinInterval({start: eventStartUtc, end: eventEndUtc}, {start: viewStartUtc, end: viewEndUtc})){
+          if(
+            // Event starts within view
+            this.isWithinInterval(eventStartUtc, {start: viewStartUtc, end: viewEndUtc}) ||
+            // Event ends within view
+            this.isWithinInterval(eventEndUtc, {start: viewStartUtc, end: viewEndUtc}) ||
+            // Event spans the entire view
+            (isBefore(eventStartUtc, viewStartUtc) && isBefore(viewEndUtc, eventEndUtc))
+          ){
             allEvents.push({...event, recurrenceRule: undefined}); // Add base if it falls in range & rule fails
           }
         }

@@ -19,7 +19,7 @@ import {CommonModule} from '@angular/common';
       [attr.tabindex]="0"
       (dblclick)="edit()"
       (keydown.enter)="edit()"
-      (keydown.space)="editPreventDefault($event)"
+      (keydown.space)="editPreventDefault(($event))"
       title="{{ event().title }} ({{ event().displayStart | date:'shortTime' }} - {{ event().displayEnd | date:'shortTime' }})"
     >
       <strong class="event-title">{{ event().title }}</strong>

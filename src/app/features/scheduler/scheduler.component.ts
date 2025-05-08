@@ -467,6 +467,7 @@ export class SchedulerComponent implements OnInit, AfterViewInit {
         container = this.monthViewContainerRef.nativeElement;
         // For month, center could mean scroll the week of centerDate into view
       } else if (this.currentView() === 'week' && this.weekViewContainerRef) {
+        // @ts-ignore
         container = this.weekViewContainerRef.nativeElement.querySelector(`.day-column-${this.dateUtil.getDay(this._parsedCenterDate())}`)! || this.weekViewContainerRef?.nativeElement!;
         // Also scroll vertically to ~8 AM or work start hour
       } else if (this.currentView() === 'day' && this.dayViewContainerRef) {
