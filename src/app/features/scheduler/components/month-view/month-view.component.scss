@@ -5,99 +5,94 @@
 :host {
   display: block;
   height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
 .month-view-container {
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Header styling */
+.month-header-container {
+  position: relative;
+  overflow: hidden; /* Hide overflow but keep content visible */
+  z-index: 30;
+  border-bottom: 1px solid var(--bs-border-color);
 }
 
 .month-header {
-  flex-shrink: 0;
-  z-index: 10;
+  display: flex;
+  /* This width will be set programmatically to match the body content */
 }
 
 .time-gutter-header {
-  flex-basis: 60px;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--bs-border-color);
+  flex: 0 0 60px;
+  min-width: 60px;
+  height: 64px;
   border-right: 1px solid var(--bs-border-color);
-  position: sticky;
-  left: 0;
-  z-index: 30; /* Higher than time-gutter-body to stay on top */
   background-color: var(--bs-tertiary-bg);
 }
 
-.month-header-cell {
-  padding: 0.5rem 0.25rem;
-  border-bottom: 1px solid var(--bs-border-color);
-  flex-basis: 0;
-  flex-grow: 1;
-  min-width: 150px; /* Minimum width for each day column */
+.month-day-headers {
+  display: flex;
 }
 
+.month-header-cell {
+  flex: 0 0 150px;
+  min-width: 150px;
+}
+
+/* Body styling */
 .month-body-scroll-container {
-  overflow-x: auto;
   flex-grow: 1;
-  position: relative;
-  height: calc(100% - 38px); /* Adjust based on header height */
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
 .time-gutter-body {
-  flex-basis: 60px;
-  flex-shrink: 0;
-  border-right: 1px solid var(--bs-border-color);
   position: sticky;
   left: 0;
-  z-index: 20; /* Ensure it's above day cells when scrolling */
-  background-color: var(--bs-body-bg); /* Match body background to avoid transparency */
+  flex: 0 0 60px;
+  min-width: 60px;
+  z-index: 20;
+  background-color: var(--bs-tertiary-bg);
+  border-right: 1px solid var(--bs-border-color);
 }
 
 .hour-label {
   padding-right: 8px;
-  height: 60px; /* Default height */
-  font-size: 0.75rem;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .month-days-row {
   display: flex;
-  width: auto;
 }
 
 .month-day-column {
-  display: flex;
-  flex-direction: column;
-  flex-basis: 0;
-  flex-grow: 1;
-  min-width: 150px; /* Match header width */
-  position: relative;
-  overflow: hidden; /* Hide overflow content */
+  flex: 0 0 150px;
+  min-width: 150px;
+  border-right: 1px solid var(--bs-border-color);
 
   &.today-column {
     background-color: var(--bs-primary-bg-subtle);
   }
 }
 
-.day-number-header {
-  flex-shrink: 0;
-  height: 28px;
-  line-height: 28px;
-  padding: 0 8px;
-  text-align: right;
-  font-size: 0.85rem;
-  background-color: rgba(var(--bs-tertiary-bg-rgb), 0.5);
-}
-
 .hour-slots-container {
-  flex-grow: 1;
-  overflow-y: auto;
+  height: 100%;
 }
 
 .hour-slot {
-  position: relative;
-  height: 60px; /* Default height */
-  background-color: transparent;
+  height: 60px;
+  border-bottom: 1px solid var(--bs-border-color);
   transition: background-color 0.15s ease;
 
   &:hover {
@@ -105,23 +100,27 @@
   }
 }
 
+/* Event styling */
 .events-overlay {
-  pointer-events: none; /* Let clicks through to slots underneath */
-  padding-top: 28px; /* Match day number header height */
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .month-event-item-wrapper {
-  pointer-events: auto; /* Make events clickable */
-  max-width: 95%;
-  margin: 0 auto;
+  pointer-events: auto;
   z-index: 10;
 }
 
 .overflow-indicator {
   position: absolute;
   bottom: 4px;
-  left: 0;
-  right: 0;
+  left: 5px;
+  right: 5px;
+  text-align: center;
   background-color: rgba(255, 255, 255, 0.8);
   border-radius: 4px;
   padding: 2px;
@@ -130,28 +129,14 @@
   z-index: 20;
 }
 
-.cdk-drag-preview {
-  box-sizing: border-box;
-  border-radius: 4px;
-  box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
-  0 8px 10px 1px rgba(0, 0, 0, 0.14),
-  0 3px 14px 2px rgba(0, 0, 0, 0.12);
-  opacity: 0.8;
-}
-
-.cdk-drag-placeholder {
-  opacity: 0.3;
-  border: 1px dashed #ccc;
-  background: #f0f0f0;
-  min-height: 20px;
-  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-}
-
 .drag-placeholder {
   border: 2px dashed var(--bs-primary);
   background: rgba(var(--bs-primary-rgb), 0.1);
   min-height: 30px;
   border-radius: 4px;
-  box-sizing: border-box;
 }
 
+/* Ensure sticky elements have backgrounds */
+.sticky-top, .sticky-left {
+  background-color: var(--bs-body-bg);
+}

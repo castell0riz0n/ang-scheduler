@@ -11,9 +11,8 @@ import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MonthViewComponent} from './components/month-view/month-view.component';
 import {WeekViewComponent} from './components/week-view/week-view.component';
 import {DayViewComponent} from './components/day-view/day-view.component';
-// Helper function to generate ISO date strings
 function toISODateString(date: Date): string {
-  return date.toISOString().split('.')[0]; // Remove milliseconds for simplicity if not needed
+  return date.toISOString().split('.')[0];
 }
 
 export type SchedulerView = 'month' | 'week' | 'day';

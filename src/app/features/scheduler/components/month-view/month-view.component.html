@@ -1,24 +1,37 @@
 <div class="month-view-container">
-  <!-- Week Header Row - Sticky -->
-  <div class="month-header d-flex sticky-top bg-body shadow-sm">
-    <!-- Time Gutter Header (Empty space above time labels) -->
-    <div class="time-gutter-header bg-body-tertiary" role="columnheader" aria-label="Time">
-      <span class="visually-hidden">Time</span>
-    </div>
-
-    @for (dayName of weekDayNames(); track $index) {
-      <div class="month-header-cell text-center fw-semibold small text-muted text-uppercase flex-fill"
-           [id]="'monthDayHeader-' + $index"
-           [class.text-primary]="isDayToday($index)">
-        {{ dayName }}
+  <!-- Header Container with manually hidden scrollbar -->
+  <div class="month-header-container sticky-top bg-body shadow-sm">
+    <div class="month-header d-flex" #headerContent>
+      <!-- Time Gutter Header -->
+      <div class="time-gutter-header bg-body-tertiary" role="columnheader" aria-label="Time">
+        <span class="visually-hidden">Time</span>
       </div>
-    }
+
+      <!-- Day Headers -->
+      <div class="month-day-headers d-flex flex-grow-1">
+        @for (day of days(); track day.date.toISOString()) {
+          <div
+            class="month-header-cell flex-fill text-center p-2 border-start user-select-none"
+            [class.bg-primary-subtle]="day.isToday"
+            [class.text-primary]="day.isToday"
+            [id]="'monthDayHeader-' + day.date.toISOString()"
+          >
+            <div class="small text-uppercase">
+              {{ dateUtil.formatInTimeZone(day.date, timeZone(), 'EEE', locale()) }}
+            </div>
+            <div class="fw-bold fs-5">
+              {{ dateUtil.formatInTimeZone(day.date, timeZone(), 'd', locale()) }}
+            </div>
+          </div>
+        }
+      </div>
+    </div>
   </div>
 
-  <!-- Scrollable Days Container -->
-  <div class="month-body-scroll-container" #monthScrollContainer>
-    <div class="d-flex h-100">
-      <!-- Time Gutter (Hour Labels) -->
+  <!-- Scrollable area that indirectly controls header -->
+  <div class="month-body-scroll-container" #bodyScrollContainer (scroll)="syncHeaderScroll()">
+    <div class="d-flex" [style.width]="calculateContentWidth()">
+      <!-- Time Gutter -->
       <div class="time-gutter-body sticky-left bg-body-tertiary user-select-none" role="presentation">
         @for(hour of hourSegments(); track hour.displayLabel) {
           <div
@@ -32,9 +45,9 @@
         }
       </div>
 
-      <!-- Grid of Day Columns -->
+      <!-- Day Columns -->
       <div class="month-days-row d-flex flex-grow-1">
-        @for (day of days(); track dayTrackBy($index, day)) {
+        @for (day of days(); track day.date.toISOString()) {
           <div
             class="month-day-column flex-fill position-relative border-start"
             [class.bg-light]="!day.isCurrentMonth"
@@ -42,13 +55,8 @@
             [attr.data-date]="day.date.toISOString()"
             [id]="'day-' + day.date.toISOString()"
             role="gridcell"
-            [attr.aria-labelledby]="'monthDayHeader-' + (day.date.getDay())"
+            [attr.aria-labelledby]="'monthDayHeader-' + day.date.toISOString()"
           >
-            <!-- Day Number Header -->
-            <div class="day-number-header border-bottom p-1" [class.text-primary]="day.isToday" [class.fw-bold]="day.isToday">
-              {{ day.date | date:'d' }}
-            </div>
-
             <!-- Hour Slots -->
             <div class="hour-slots-container position-relative">
               @for(hour of hourSegments(); track hour.date.toISOString(); let hourIndex = $index) {
@@ -56,7 +64,7 @@
                   class="hour-slot border-bottom"
                   [style.height.px]="hourSegmentHeight()"
                   role="button"
-                  [attr.aria-label]="'Time slot for ' + hour.displayLabel + ' on ' + (day.date | date:'EEEE')"
+                  [attr.aria-label]="'Time slot for ' + hour.displayLabel + ' on ' + dateUtil.formatInTimeZone(day.date, timeZone(), 'EEEE', locale())"
                   tabindex="0"
                   (click)="handleTimeSlotClick(day, hour)"
                   (keydown.enter)="handleTimeSlotClick(day, hour)"
@@ -69,7 +77,7 @@
               }
             </div>
 
-            <!-- Events for this day, absolutely positioned OVER the hour slots -->
+            <!-- Events overlay -->
             <div class="events-overlay position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;">
               @for(event of day.events; track event.id) {
                 <div
@@ -81,7 +89,7 @@
                   style="pointer-events: auto;"
                   role="button"
                   tabindex="0"
-                  [attr.aria-label]="event.title + ' on ' + (day.date | date:'fullDate')"
+                  [attr.aria-label]="event.title + ' on ' + dateUtil.formatInTimeZone(day.date, timeZone(), 'PPPP', locale())"
                   (dblclick)="onEventClick(event, $event)"
                   (click)="onEventClick(event, $event)"
                   (keydown.enter)="onEventClick(event, $event)"

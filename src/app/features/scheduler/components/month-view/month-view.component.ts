@@ -1,4 +1,16 @@
-import { Component, input, output, computed, ChangeDetectionStrategy, inject, ViewChild, ElementRef, AfterViewInit, signal } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  computed,
+  ChangeDetectionStrategy,
+  inject,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+  signal,
+  ChangeDetectorRef
+} from '@angular/core';
 import {
   CdkDragDrop,
   CdkDragStart,
@@ -13,6 +25,8 @@ import {
 } from 'date-fns';
 import { CommonModule } from '@angular/common';
 import { EventItemComponent } from '../event-item/event-item.component';
+import {debounceTime, fromEvent} from 'rxjs';
+import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 
 // Define interface for hour segments (matching the week view)
 interface HourSegment {
@@ -35,88 +49,110 @@ interface HourSegment {
 export class MonthViewComponent implements AfterViewInit {
   days = input.required<DayViewModel[]>();
   weekDayNames = input.required<string[]>();
-  currentViewDate = input.required<Date>(); // The date around which this view is centered
+  currentViewDate = input.required<Date>();
   locale = input<string>('en-US');
   timeZone = input<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
-
-  // Add new inputs for hour configuration (matching week view)
   hoursRange = input<{ start: number, end: number }>({ start: 0, end: 24 });
 
   eventDropped = output<{ event: CalendarEvent, newStart: string, newEnd: string }>();
-  slotClicked = output<string>(); // Emits ISO string of the clicked day
-  eventClicked = output<CalendarEvent>(); // For editing or other actions
+  slotClicked = output<string>();
+  eventClicked = output<CalendarEvent>();
 
-  private dateUtil = inject(DateUtilService);
-  public maxEventsPerCell = 3; // Configurable: how many events to show before "+N more"
-  public hourSegmentHeight = signal(60); // Default height for hour segments (matching week view)
+  public dateUtil = inject(DateUtilService);
+  private cdr = inject(ChangeDetectorRef);
 
-  @ViewChild('monthScrollContainer') monthScrollContainer?: ElementRef<HTMLElement>;
+  public maxEventsPerCell = 3;
+  public hourSegmentHeight = signal(60);
 
-  // Generate hour segments for the time gutter (similar to week view)
+  // ViewChild references - updated to match new template
+  @ViewChild('headerContent') headerContent?: ElementRef<HTMLElement>;
+  @ViewChild('bodyScrollContainer') bodyScrollContainer?: ElementRef<HTMLElement>;
+
+  // Define hour segments
   hourSegments = computed<HourSegment[]>(() => {
     const range = this.hoursRange();
     const segments: HourSegment[] = [];
-    // Use a constant base date just for hour iteration
-    const baseDateForHourIteration = new Date(2000, 0, 1); // Arbitrary fixed date
+    const baseDateForHourIteration = new Date(2000, 0, 1);
+
     for (let h = range.start; h < range.end; h++) {
-      // Create a UTC date for this hour.
       const hourUtc = setMinutes(setHours(baseDateForHourIteration, h), 0);
       segments.push({
         date: hourUtc,
         displayLabel: this.dateUtil.formatInTimeZone(hourUtc, this.timeZone(), 'p', this.locale())
       });
     }
+
     return segments;
   });
 
   ngAfterViewInit() {
-    // Scroll to the current week after view is initialized
+    // Initial sync of scroll positions and header width
+    this.updateHeaderPosition();
     this.scrollToToday();
   }
 
-  // Check if a day corresponds to today
-  isDayToday(dayIndex: number): boolean {
-    const today = new Date();
-    return dayIndex === today.getDay();
+  // Calculate the total width needed for the content area
+  calculateContentWidth(): string {
+    const dayCount = this.days().length;
+    return `${60 + (dayCount * 150)}px`; // 60px for time gutter + (150px per day)
   }
 
-  // Scroll to today's column
-  public scrollToToday() {
-    if (!this.monthScrollContainer) return;
+  // Synchronize header scroll position with body scroll
+  syncHeaderScroll(): void {
+    if (!this.headerContent || !this.bodyScrollContainer) return;
+
+    // Update the transform of the header content to match body scroll
+    const scrollLeft = this.bodyScrollContainer.nativeElement.scrollLeft;
+    this.headerContent.nativeElement.style.transform = `translateX(-${scrollLeft}px)`;
+  }
+
+  // Update the header position and ensure width matches body content
+  updateHeaderPosition(): void {
+    if (!this.headerContent || !this.bodyScrollContainer) return;
+
+    // Ensure header content has the same width as body content
+    const bodyWidth = this.calculateContentWidth();
+    this.headerContent.nativeElement.style.width = bodyWidth;
+
+    // Initial sync of scroll position
+    this.syncHeaderScroll();
+
+    // Trigger change detection to apply styles
+    this.cdr.detectChanges();
+  }
+
+  scrollToToday() {
+    if (!this.bodyScrollContainer) return;
 
     setTimeout(() => {
-      const todayCell = this.monthScrollContainer?.nativeElement.querySelector('.today-column');
-      if (todayCell) {
-        todayCell.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      const todayColumn = this.bodyScrollContainer?.nativeElement.querySelector('.today-column');
+      if (todayColumn) {
+        todayColumn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       } else {
-        // If today is not visible, scroll to the current view date
         this.scrollToCurrentViewDate();
       }
     }, 100);
   }
 
-  // Scroll to the current view date
-  public scrollToCurrentViewDate() {
-    if (!this.monthScrollContainer) return;
+  scrollToCurrentViewDate() {
+    if (!this.bodyScrollContainer) return;
 
     const currentViewDateStr = this.currentViewDate().toISOString().split('T')[0];
-    const targetCell = this.monthScrollContainer.nativeElement.querySelector(`[data-date^="${currentViewDateStr}"]`);
+    const targetColumn = this.bodyScrollContainer.nativeElement.querySelector(`[data-date^="${currentViewDateStr}"]`);
 
-    if (targetCell) {
-      targetCell.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    if (targetColumn) {
+      targetColumn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
   }
 
-  // Handler for time slot clicks
+  // The rest of your component methods stay the same
   handleTimeSlotClick(day: DayViewModel, hourSegment: HourSegment) {
-    // Combine day.date (UTC start of day) with hour from hourSegment
     const clickedHour = getHours(hourSegment.date);
     const clickedMinute = getMinutes(hourSegment.date);
     const clickedDateTimeUtc = setMinutes(setHours(new Date(day.date), clickedHour), clickedMinute);
     this.slotClicked.emit(this.dateUtil.toIsoString(clickedDateTimeUtc));
   }
 
-  // Handle drops on time slots
   onTimeSlotDrop(
     dropEvent: CdkDragDrop<any, any, DisplayCalendarEvent>,
     dayTarget: DayViewModel,
@@ -150,27 +186,21 @@ export class MonthViewComponent implements AfterViewInit {
     });
   }
 
-  // Style for event rendering based on time properties
   getEventStyle(event: DisplayCalendarEvent): any {
-    // Position based on start time and duration
     if (event.allDay) {
       return {
-        top: '30px', // Just below the day number header
+        top: '5px',
         left: '3%',
         width: '94%',
         height: '24px'
       };
     }
 
-    // Calculate position based on time (similar to week view)
-    const dayStart = this.hoursRange().start * 60; // Start hour in minutes
+    const dayStart = this.hoursRange().start * 60;
     const eventStart = getHours(event.displayStart) * 60 + getMinutes(event.displayStart);
     const startMinutesFromDayStart = Math.max(0, eventStart - dayStart);
 
-    // Calculate top position
-    const top = (startMinutesFromDayStart / 60) * this.hourSegmentHeight() + 30; // +30px for day header
-
-    // Calculate height based on duration
+    const top = (startMinutesFromDayStart / 60) * this.hourSegmentHeight();
     const duration = differenceInMinutes(event.displayEnd, event.displayStart);
     const height = Math.max(25, (duration / 60) * this.hourSegmentHeight());
 
@@ -183,17 +213,8 @@ export class MonthViewComponent implements AfterViewInit {
     };
   }
 
-  // Existing methods
   dayTrackBy(index: number, day: DayViewModel) {
     return day.date.toISOString();
-  }
-
-  eventTrackBy(index: number, event: DisplayCalendarEvent) {
-    return event.id;
-  }
-
-  onSlotClick(day: DayViewModel) {
-    this.slotClicked.emit(this.dateUtil.toIsoString(startOfDay(day.date)));
   }
 
   onEventClick(event: DisplayCalendarEvent, domEvent: MouseEvent) {
@@ -202,10 +223,13 @@ export class MonthViewComponent implements AfterViewInit {
   }
 
   onDragEnded(event: CdkDragEnd<DisplayCalendarEvent>) {
-    // Handle drag end if needed
+    // Implementation stays the same...
   }
 
-  // Helper to slice events for cell display and show "+N more"
+  onSlotClick(day: DayViewModel) {
+    this.slotClicked.emit(this.dateUtil.toIsoString(startOfDay(day.date)));
+  }
+
   getEventsForCell(day: DayViewModel): DisplayCalendarEvent[] {
     return day.events.slice(0, this.maxEventsPerCell);
   }
